@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Aventurero v15 (Firebase + Gráficos)</title>
+    <title>Panel de Aventurero v16 (Nivel 0)</title>
     <!-- Importación de Chart.js para los gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -155,7 +155,7 @@
             <div class="container log-panel">
                 <h2>Registro</h2>
                 <ul id="log-list"></ul>
-                <div id="version-info">v15 (Firebase + Gráficos)</div>
+                <div id="version-info">v16 (Nivel 0)</div>
             </div>
         </div>
 
@@ -294,20 +294,20 @@
         let currentUser = null;
 
         const initialSkillsData = {
-            'Avance (Formación)': { xp: 0, level: 1, icon: '⚔️', subSkills: {}, img: 'https://placehold.co/80x80/c23616/FFFFFF?text=⚔️', category: 'combate', description: 'Todo lo que impulsa tu carrera. Estudiar, hacer networking, desarrollar un proyecto laboral, buscar un ascenso, trabajar en equipo, puntualidad.' },
-            'Fuerza (Salud centrada en el cuerpo)': { xp: 0, level: 1, icon: '💪', subSkills: {}, img: 'https://placehold.co/80x80/e84118/FFFFFF?text=💪', category: 'combate', description: 'Entrenamiento de fuerza, levantamiento de pesas, calistenia, funcional.' },
-            'Defensa (Finanzas Personales)': { xp: 0, level: 1, icon: '🛡️', subSkills: {}, img: 'https://placehold.co/80x80/4cd137/FFFFFF?text=🛡️', category: 'combate', description: 'Ahorrar, invertir, crear un presupuesto, aprender sobre economía, pagar deudas.' },
-            'Constitución (Salud y Resistencia)': { xp: 0, level: 1, icon: '❤️', subSkills: {}, img: 'https://placehold.co/80x80/ff4757/FFFFFF?text=❤️', category: 'combate', description: 'Dormir bien, mantenerse hidratado, procurar cumplir con los ciclos circadianos, chequeos médicos, baños de agua helada.' },
-            'Agilidad (Salud centrada en cuerpo)': { xp: 0, level: 1, icon: '�', subSkills: {}, img: 'https://placehold.co/80x80/1e90ff/FFFFFF?text=🏃', category: 'combate', description: 'Actividades de Cardio y Flexibilidad como correr, nadar, yoga, ciclismo, estiramientos, gimnasia funcional.' },
-            'Magia (Habilidades Sociales)': { xp: 0, level: 1, icon: '✨', subSkills: {}, img: 'https://placehold.co/80x80/8c7ae6/FFFFFF?text=✨', category: 'combate', description: 'Comunicación, oratoria, negociación, empatía, inteligencia emocional, psicoterapia, compañerismo' },
-            'Espiritual (Salud Mental)': { xp: 0, level: 1, icon: '🧘', subSkills: {}, img: 'https://placehold.co/80x80/718093/FFFFFF?text=🧘', category: 'autocuidado', description: 'Meditar, Mindfulness, escribir un diario, practicar la gratitud, terapias, plegarias, amor, amistades' },
-            'Nutrición (Salud corporal)': { xp: 0, level: 1, icon: '🌿', subSkills: {}, img: 'https://placehold.co/80x80/27ae60/FFFFFF?text=🌿', category: 'autocuidado', description: 'Aprender sobre macronutrientes, planificar comidas saludables, reducir procesados.' },
-            'Cocina (Práctica)': { xp: 0, level: 1, icon: '🍳', subSkills: {}, img: 'https://placehold.co/80x80/fbc531/FFFFFF?text=🍳', category: 'autocuidado', description: 'Preparar tus propias comidas, aprender nuevas recetas, batch cooking.' },
-            'Hobbies y Relajación (en la Nada y en el Todo a la vez)': { xp: 0, level: 1, icon: '🌌', subSkills: {}, img: 'https://placehold.co/80x80/3498db/FFFFFF?text=🌌', category: 'autocuidado', description: 'Dedicar tiempo a pasatiempos que te relajen y disfrutes sin un fin productivo. Leer ficción, tocar un instrumento, pintar, pescar.' },
-            'Estudio Profundo': { xp: 0, level: 1, icon: '📚', subSkills: {}, img: 'https://placehold.co/80x80/9b59b6/FFFFFF?text=📚', category: 'artesania', description: 'Aprender una habilidad "dura" y compleja. Programación, un nuevo idioma, carpintería, edición de video.' },
-            'Creación (Proyectos Creativos)': { xp: 0, level: 1, icon: '🎨', subSkills: {}, img: 'https://placehold.co/80x80/e74c3c/FFFFFF?text=🎨', category: 'artesania', description: 'Escribir, dibujar, componer música, crear contenido para tus seres queridos o las redes.' },
-            'Construcción (Organización)': { xp: 0, level: 1, icon: '🏡', subSkills: {}, img: 'https://placehold.co/80x80/f39c12/FFFFFF?text=🏡', category: 'artesania', description: 'Ordenar tu casa, optimizar tu espacio de trabajo, bricolaje (DIY), minimalismo.'},
-            'Grabación de Fuego (Disciplina)': { xp: 0, level: 1, icon: '🔥', subSkills: {}, img: 'https://placehold.co/80x80/d35400/FFFFFF?text=🔥', category: 'artesania', description: 'La habilidad "meta". Se enfoca en el acto de construir y mantener la rutina. La clave es la simplicidad y la consistencia.' }
+            'Avance (Formación)': { xp: 0, level: 0, icon: '⚔️', subSkills: {}, img: 'https://placehold.co/80x80/c23616/FFFFFF?text=⚔️', category: 'combate', description: 'Todo lo que impulsa tu carrera. Estudiar, hacer networking, desarrollar un proyecto laboral, buscar un ascenso, trabajar en equipo, puntualidad.' },
+            'Fuerza (Salud centrada en el cuerpo)': { xp: 0, level: 0, icon: '💪', subSkills: {}, img: 'https://placehold.co/80x80/e84118/FFFFFF?text=💪', category: 'combate', description: 'Entrenamiento de fuerza, levantamiento de pesas, calistenia, funcional.' },
+            'Defensa (Finanzas Personales)': { xp: 0, level: 0, icon: '🛡️', subSkills: {}, img: 'https://placehold.co/80x80/4cd137/FFFFFF?text=🛡️', category: 'combate', description: 'Ahorrar, invertir, crear un presupuesto, aprender sobre economía, pagar deudas.' },
+            'Constitución (Salud y Resistencia)': { xp: 0, level: 0, icon: '❤️', subSkills: {}, img: 'https://placehold.co/80x80/ff4757/FFFFFF?text=❤️', category: 'combate', description: 'Dormir bien, mantenerse hidratado, procurar cumplir con los ciclos circadianos, chequeos médicos, baños de agua helada.' },
+            'Agilidad (Salud centrada en cuerpo)': { xp: 0, level: 0, icon: '🏃', subSkills: {}, img: 'https://placehold.co/80x80/1e90ff/FFFFFF?text=🏃', category: 'combate', description: 'Actividades de Cardio y Flexibilidad como correr, nadar, yoga, ciclismo, estiramientos, gimnasia funcional.' },
+            'Magia (Habilidades Sociales)': { xp: 0, level: 0, icon: '✨', subSkills: {}, img: 'https://placehold.co/80x80/8c7ae6/FFFFFF?text=✨', category: 'combate', description: 'Comunicación, oratoria, negociación, empatía, inteligencia emocional, psicoterapia, compañerismo' },
+            'Espiritual (Salud Mental)': { xp: 0, level: 0, icon: '🧘', subSkills: {}, img: 'https://placehold.co/80x80/718093/FFFFFF?text=🧘', category: 'autocuidado', description: 'Meditar, Mindfulness, escribir un diario, practicar la gratitud, terapias, plegarias, amor, amistades' },
+            'Nutrición (Salud corporal)': { xp: 0, level: 0, icon: '🌿', subSkills: {}, img: 'https://placehold.co/80x80/27ae60/FFFFFF?text=🌿', category: 'autocuidado', description: 'Aprender sobre macronutrientes, planificar comidas saludables, reducir procesados.' },
+            'Cocina (Práctica)': { xp: 0, level: 0, icon: '🍳', subSkills: {}, img: 'https://placehold.co/80x80/fbc531/FFFFFF?text=🍳', category: 'autocuidado', description: 'Preparar tus propias comidas, aprender nuevas recetas, batch cooking.' },
+            'Hobbies y Relajación (en la Nada y en el Todo a la vez)': { xp: 0, level: 0, icon: '🌌', subSkills: {}, img: 'https://placehold.co/80x80/3498db/FFFFFF?text=🌌', category: 'autocuidado', description: 'Dedicar tiempo a pasatiempos que te relajen y disfrutes sin un fin productivo. Leer ficción, tocar un instrumento, pintar, pescar.' },
+            'Estudio Profundo': { xp: 0, level: 0, icon: '📚', subSkills: {}, img: 'https://placehold.co/80x80/9b59b6/FFFFFF?text=📚', category: 'artesania', description: 'Aprender una habilidad "dura" y compleja. Programación, un nuevo idioma, carpintería, edición de video.' },
+            'Creación (Proyectos Creativos)': { xp: 0, level: 0, icon: '🎨', subSkills: {}, img: 'https://placehold.co/80x80/e74c3c/FFFFFF?text=🎨', category: 'artesania', description: 'Escribir, dibujar, componer música, crear contenido para tus seres queridos o las redes.' },
+            'Construcción (Organización)': { xp: 0, level: 0, icon: '🏡', subSkills: {}, img: 'https://placehold.co/80x80/f39c12/FFFFFF?text=🏡', category: 'artesania', description: 'Ordenar tu casa, optimizar tu espacio de trabajo, bricolaje (DIY), minimalismo.'},
+            'Grabación de Fuego (Disciplina)': { xp: 0, level: 0, icon: '🔥', subSkills: {}, img: 'https://placehold.co/80x80/d35400/FFFFFF?text=🔥', category: 'artesania', description: 'La habilidad "meta". Se enfoca en el acto de construir y mantener la rutina. La clave es la simplicidad y la consistencia.' }
         };
 
         const XP_PER_15_MINS = 100;
@@ -439,20 +439,29 @@
         // ==========================================================================
         //  6. LÓGICA DE JUEGO (CÁLCULOS)
         // ==========================================================================
-        function getXpForLevel(level) { return Math.pow(level, 2) * 1000; }
+        function getXpForLevel(level) { 
+            return Math.pow(level, 2) * 1000;
+        }
         
         function getLevelFromXp(xp) { 
-            if (xp < getXpForLevel(1)) return 1; 
+            if (!xp || xp < 1) return 0;
             const level = Math.floor(Math.sqrt(xp / 1000));
-            return Math.min(level + 1, 200); 
+            return Math.min(level, 200); 
         }
 
         function calculateSkillProgress(skill) { 
-            const xpForCurrentLevel = skill.level > 1 ? getXpForLevel(skill.level - 1) : 0;
-            const xpForNextLevel = getXpForLevel(skill.level);
-            const xpInCurrentLevel = skill.xp - xpForCurrentLevel;
-            const xpNeededForLevel = xpForNextLevel - xpForCurrentLevel;
-            return { progressPercentage: xpNeededForLevel > 0 ? (xpInCurrentLevel / xpNeededForLevel) * 100 : 0 };
+            const xpAtStartOfCurrentLevel = getXpForLevel(skill.level);
+            const xpAtStartOfNextLevel = getXpForLevel(skill.level + 1);
+            const xpNeededForThisLevel = xpAtStartOfNextLevel - xpAtStartOfCurrentLevel;
+
+            if (xpNeededForThisLevel <= 0) { // Max level or error case
+                return { progressPercentage: skill.xp >= xpAtStartOfCurrentLevel ? 100 : 0 };
+            }
+
+            const xpEarnedInThisLevel = skill.xp - xpAtStartOfCurrentLevel;
+            const progressPercentage = (xpEarnedInThisLevel / xpNeededForThisLevel) * 100;
+            
+            return { progressPercentage: Math.max(0, Math.min(progressPercentage, 100)) };
         }
 
         function calculateXpGained(activityType, timeSpent) {
@@ -908,4 +917,3 @@
     </script>
 </body>
 </html>
-�
