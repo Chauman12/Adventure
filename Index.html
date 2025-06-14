@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Aventurero v19 (Imágenes Pixeladas por IA)</title>
+    <title>Panel de Aventurero v20 (API Key Personal)</title>
     <!-- Importación de Chart.js para los gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -50,13 +50,14 @@
         /* ==========================================================================
            6. ELEMENTOS DE FORMULARIO Y BOTONES
            ========================================================================== */
-        select, input[type="number"], input[type="text"], input[type="date"], input[type="time"], textarea { width: 100%; padding: 12px; margin-bottom: 15px; background-color: #1e1e2f; color: #dcdcdc; border: 2px solid #4f4f6f; border-radius: 4px; font-family: inherit; font-size: 0.9rem; box-sizing: border-box; }
+        select, input[type="number"], input[type="text"], input[type="password"], input[type="date"], input[type="time"], textarea { width: 100%; padding: 12px; margin-bottom: 15px; background-color: #1e1e2f; color: #dcdcdc; border: 2px solid #4f4f6f; border-radius: 4px; font-family: inherit; font-size: 0.9rem; box-sizing: border-box; }
         textarea { resize: vertical; min-height: 80px; }
         button, .nav-btn, .type-btn { width: 100%; padding: 12px; margin-bottom: 10px; color: #FFFFFF; font-weight: bold; cursor: pointer; border: none; border-radius: 4px; font-family: inherit; text-align: center; transition: all 0.1s ease-in-out; display: block; font-size: 0.8rem; }
         #register-btn, #create-mission-btn, #ai-prompt-btn { background: linear-gradient(145deg, #4a90e2, #3a7ac8); border-bottom: 4px solid #2a5a9a; }
         #auth-btn { background-color: #4CAF50; border-bottom: 4px solid #388E3C; }
         #logout-btn { background-color: #555; border-bottom: 4px solid #444; display: none; }
         #reset-progress-btn { background-color: #c23616; border-bottom: 4px solid #8e240e;}
+        #save-api-key-btn { background-color: #4a90e2; border-bottom: 4px solid #2a5a9a; }
         .nav-btn { background-color: #6a4f9a; border-bottom: 4px solid #4a2f7a; }
         .nav-btn.active { background-color: #8a6fba; transform: translateY(2px); border-bottom-width: 2px;}
         button:disabled { background-color: #555; border-bottom-color: #444; color: #888; cursor: not-allowed; }
@@ -186,7 +187,7 @@
             <div class="container log-panel">
                 <h2>Registro</h2>
                 <ul id="log-list"></ul>
-                <div id="version-info">v19 (Imágenes Pixeladas por IA)</div>
+                <div id="version-info">v20 (API Key Personal)</div>
             </div>
         </div>
 
@@ -270,7 +271,7 @@
                     <p style="font-size: 0.8rem; color: #a0a0c0; text-align:center; line-height: 1.5;">Pide consejo o inspiración a la IA. Ej: "Dame 5 ideas para la habilidad de Cocina" o "Crea una rutina de 3 días para mejorar mi Agilidad".</p>
                     <textarea id="ai-prompt-input" rows="4" placeholder="Escribe tu consulta aquí..." disabled></textarea>
                     <button id="ai-prompt-btn" disabled>Enviar Consulta</button>
-                    <div id="ai-response-container">La respuesta de la IA aparecerá aquí...</div>
+                    <div id="ai-response-container">Ingresa tu API Key de Google AI en la página de Configuración para activar el asistente.</div>
                 </div>
             </div>
 
@@ -298,8 +299,13 @@
             <div id="page-configuracion" class="page-content">
                 <div class="container">
                     <h1>Configuración</h1>
-                    <p style="text-align:center; line-height: 1.5;">Aquí puedes gestionar los datos de tu aplicación.</p>
-                    <h4>Zona de Peligro</h4>
+                    
+                    <h4>API Key de Google AI</h4>
+                    <p style="font-size: 0.8rem; color: #a0a0c0; text-align:center; line-height: 1.5;">Ingresa tu propia API key de Google AI Studio para habilitar el Asistente IA y la generación de imágenes. La clave se guardará en tu perfil de Firebase.</p>
+                    <input type="password" id="api-key-input" placeholder="Pega tu API key aquí" disabled>
+                    <button id="save-api-key-btn" disabled>Guardar Clave</button>
+
+                    <h4 style="margin-top: 30px;">Zona de Peligro</h4>
                     <p style="font-size: 0.8rem; color: #a0a0c0; text-align:center; line-height: 1.5;">Esta acción borrará permanentemente tu progreso guardado en la nube. No se puede deshacer.</p>
                     <button id="reset-progress-btn" disabled>Borrar Progreso en la Nube</button>
                 </div>
@@ -350,9 +356,11 @@
         const provider = new GoogleAuthProvider();
 
         let skills = {};
+        let userProfile = {};
         let chartInstances = {};
         let currentUser = null;
         let currentModalAction = null;
+        let googleAiApiKey = null;
 
         const initialSkillsData = {
             'Avance (Formación)': { xp: 0, level: 0, icon: '⚔️', subSkills: {}, img: 'https://placehold.co/80x80/c23616/FFFFFF?text=⚔️', category: 'combate', description: 'Todo lo que impulsa tu carrera. Estudiar, hacer networking, desarrollar un proyecto laboral, buscar un ascenso, trabajar en equipo, puntualidad.' },
@@ -368,7 +376,7 @@
             'Estudio Profundo': { xp: 0, level: 0, icon: '📚', subSkills: {}, img: 'https://placehold.co/80x80/9b59b6/FFFFFF?text=📚', category: 'artesania', description: 'Aprender una habilidad "dura" y compleja. Programación, un nuevo idioma, carpintería, edición de video.' },
             'Creación (Proyectos Creativos)': { xp: 0, level: 0, icon: '🎨', subSkills: {}, img: 'https://placehold.co/80x80/e74c3c/FFFFFF?text=🎨', category: 'artesania', description: 'Escribir, dibujar, componer música, crear contenido para tus seres queridos o las redes.' },
             'Construcción (Organización)': { xp: 0, level: 0, icon: '🏡', subSkills: {}, img: 'https://placehold.co/80x80/f39c12/FFFFFF?text=🏡', category: 'artesania', description: 'Ordenar tu casa, optimizar tu espacio de trabajo, bricolaje (DIY), minimalismo.'},
-            'Grabación de Fuego (Disciplina)': { xp: 0, level: 0, icon: '🔥', subSkills: {}, img: 'https://placehold.co/80x80/d35400/FFFFFF?text=🔥', category: 'artesania', description: 'La habilidad "meta". Se enfoca en el acto de construir y mantener la rutina. La clave es la simplicidad y la consistencia.' }
+            'Grabación de Fuego (Disciplina)': { xp: 0, level: 0, icon: '�', subSkills: {}, img: 'https://placehold.co/80x80/d35400/FFFFFF?text=🔥', category: 'artesania', description: 'La habilidad "meta". Se enfoca en el acto de construir y mantener la rutina. La clave es la simplicidad y la consistencia.' }
         };
 
         const XP_PER_15_MINS = 100;
@@ -409,6 +417,8 @@
         const aiPromptInput = document.getElementById('ai-prompt-input');
         const aiPromptBtn = document.getElementById('ai-prompt-btn');
         const aiResponseContainer = document.getElementById('ai-response-container');
+        const apiKeyInput = document.getElementById('api-key-input');
+        const saveApiKeyBtn = document.getElementById('save-api-key-btn');
         const allInputs = document.querySelectorAll('button, select, input, textarea');
 
         // ==========================================================================
@@ -425,6 +435,7 @@
                 enableAllInputs(true);
             } else {
                 currentUser = null;
+                googleAiApiKey = null;
                 authStatus.textContent = 'Inicia sesión para comenzar.';
                 authBtn.style.display = 'block';
                 logoutBtn.style.display = 'none';
@@ -448,13 +459,13 @@
             const userDocRef = doc(db, 'users', user.uid);
             try {
                 const docSnap = await getDoc(userDocRef);
-                if (docSnap.exists() && docSnap.data().skills) {
-                    const loadedSkills = docSnap.data().skills;
-                    skills = JSON.parse(JSON.stringify(initialSkillsData));
-                    for (const skillName in loadedSkills) {
-                        if (skills.hasOwnProperty(skillName)) {
-                            Object.assign(skills[skillName], JSON.parse(JSON.stringify(loadedSkills[skillName])));
-                        }
+                if (docSnap.exists()) {
+                    userProfile = docSnap.data();
+                    skills = userProfile.skills || JSON.parse(JSON.stringify(initialSkillsData));
+                    googleAiApiKey = userProfile.googleAiApiKey || null;
+                    if(googleAiApiKey) {
+                        apiKeyInput.value = googleAiApiKey;
+                         aiResponseContainer.textContent = 'Asistente listo. ¡Haz tu consulta!';
                     }
                     addLogEntry('📂 Progreso cargado.');
                 } else {
@@ -468,7 +479,9 @@
                 skills = JSON.parse(JSON.stringify(initialSkillsData));
             } finally {
                 updateAllUI();
-                await checkAndGenerateImages();
+                if (googleAiApiKey) {
+                    await checkAndGenerateImages();
+                }
             }
         }
 
@@ -482,6 +495,7 @@
 
             const dataToSave = { 
                 skills,
+                googleAiApiKey,
                 displayName: user.displayName,
                 photoURL: user.photoURL,
                 lastUpdate: new Date().toISOString(),
@@ -490,7 +504,7 @@
                 score
             };
             try {
-                await setDoc(userDocRef, dataToSave, { merge: true }); // Always merge to be safe
+                await setDoc(userDocRef, dataToSave, { merge: true });
             } catch (error) {
                 console.error("Error al guardar datos:", error);
                 addLogEntry(`<span class="error">Error al guardar el progreso.</span>`);
@@ -534,32 +548,32 @@
         }
 
         async function getAIResponse(prompt) {
+            if (!googleAiApiKey) {
+                aiResponseContainer.textContent = 'Por favor, ingresa una API Key en la página de Configuración para usar esta función.';
+                return;
+            }
             aiResponseContainer.textContent = 'Generando respuesta...';
             aiPromptBtn.disabled = true;
 
-            const apiKey = ""; // Dejar vacío, el entorno lo gestionará
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${googleAiApiKey}`;
 
             try {
                 const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [{ text: prompt }]
-                        }]
-                    })
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                 });
 
                 if (!response.ok) {
-                    throw new Error(`Error de la API: ${response.statusText}`);
+                    const errorBody = await response.json();
+                    console.error('Error Body:', errorBody);
+                    throw new Error(`Error de la API: ${response.statusText}. Revisa que la API Key sea correcta y que la API de Gemini esté habilitada en tu proyecto de Google Cloud.`);
                 }
 
                 const result = await response.json();
                 
-                if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts && result.candidates[0].content.parts.length > 0) {
-                    const text = result.candidates[0].content.parts[0].text;
-                    aiResponseContainer.textContent = text;
+                if (result.candidates && result.candidates[0]?.content?.parts[0]?.text) {
+                    aiResponseContainer.textContent = result.candidates[0].content.parts[0].text;
                 } else {
                     throw new Error("Respuesta de la API inválida.");
                 }
@@ -574,7 +588,7 @@
 
         async function generateAndSaveImageForSkill(skillName) {
             const skill = skills[skillName];
-            if (!skill || skill.generatedImgUrl) return false;
+            if (!googleAiApiKey || !skill || skill.generatedImgUrl) return false;
 
             const sanitizedSkillName = skillName.replace(/[^a-zA-Z0-9]/g, '');
             const imgElement = document.getElementById(`img-${sanitizedSkillName}`);
@@ -582,8 +596,7 @@
             
             const prompt = `A minimalist 8-bit pixel art icon representing the skill of '${skillName}'. Simple design, on a dark futuristic background.`;
             const payload = { instances: [{ prompt }], parameters: { "sampleCount": 1 } };
-            const apiKey = ""; 
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${googleAiApiKey}`;
 
             try {
                 const response = await fetch(apiUrl, {
@@ -591,7 +604,11 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
+                if (!response.ok) {
+                     const errorBody = await response.json();
+                     console.error('Image Gen Error Body:', errorBody);
+                     throw new Error(`Error ${response.status}: ${response.statusText}. Revisa que tu API Key tenga la API de Vertex AI habilitada.`);
+                }
                 const result = await response.json();
                 if (result.predictions && result.predictions[0]?.bytesBase64Encoded) {
                     const imageUrl = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
@@ -602,16 +619,18 @@
                     }
                     return true;
                 } else {
-                    throw new Error("Invalid API response.");
+                    throw new Error("Respuesta de la API de Imagen inválida.");
                 }
             } catch (error) {
                 console.error(`Error generating image for ${skillName}:`, error);
                 if (imgElement) imgElement.classList.remove('loading');
+                addLogEntry(`<span class="error">Error generando imagen para ${skillName}.</span>`);
                 return false;
             }
         }
 
         async function checkAndGenerateImages() {
+            if (!googleAiApiKey) return;
             let wasDataUpdated = false;
             const generationPromises = [];
 
@@ -976,6 +995,18 @@
                 const prompt = aiPromptInput.value;
                 if(prompt.trim()) getAIResponse(prompt);
             });
+            saveApiKeyBtn.addEventListener('click', async () => {
+                const newKey = apiKeyInput.value.trim();
+                if(newKey) {
+                    googleAiApiKey = newKey;
+                    await saveUserData(currentUser);
+                    addLogEntry('✔️ API Key guardada con éxito.');
+                    aiResponseContainer.textContent = 'Asistente listo. ¡Haz tu consulta!';
+                    await checkAndGenerateImages();
+                } else {
+                    addLogEntry('⚠️ Ingresa una API Key válida.');
+                }
+            });
             createMissionBtn.addEventListener('click', () => {
                 const title = missionTitleInput.value;
                 const date = missionDateInput.value;
@@ -1002,3 +1033,28 @@
     </script>
 </body>
 </html>
+```
+
+### Resumen de los Cambios
+
+1.  **Nuevo Campo para API Key:** En la página de **Configuración**, ahora verás un campo para que pegues tu API key de Google AI. He puesto `type="password"` para que la clave no sea visible al escribirla.
+2.  **Botón de Guardar Clave:** Junto al campo, hay un botón para guardar la clave. Al hacerlo, se almacenará de forma segura en tu perfil de usuario dentro de Firestore.
+3.  **Lógica Condicional:**
+    * El **Asistente IA** y la **generación de imágenes** solo se activarán si has guardado una API key.
+    * Si no hay clave, la página del asistente te pedirá que la ingreses en la configuración.
+    * Las imágenes de las habilidades simplemente usarán los íconos emoji por defecto si no se puede generar una imagen nueva.
+4.  **Manejo de Errores Mejorado:** Si una llamada a la API falla, el mensaje de error en el log será más descriptivo, sugiriendo que verifiques si la API correspondiente (Gemini o Vertex AI) está habilitada en tu proyecto de Google Cloud.
+
+### ¿Qué Debes Hacer Ahora?
+
+Para que las funciones de IA funcionen, necesitarás:
+
+1.  **Crear una API Key:** Ve a [Google AI Studio](https://aistudio.google.com/app/apikey) para generar una nueva clave de API.
+2.  **Habilitar las APIs:** Asegúrate de que en tu proyecto de Google Cloud (el mismo asociado a tu configuración de Firebase) estén habilitadas las siguientes APIs:
+    * **Generative Language API** (para el Asistente IA).
+    * **Vertex AI API** (para la generación de imágenes con Imagen).
+3.  **Pegar y Guardar:** Copia la API key, pégala en el nuevo campo en la página de **Configuración** de la aplicación y haz clic en "Guardar Clave".
+
+Una vez que guardes la clave, la aplicación intentará generar las imágenes que falten y el asistente de IA estará listo para usarse.
+
+Estos cambios resuelven los errores de la consola y te dan el control para habilitar las potentes funciones de IA de la aplicaci�
