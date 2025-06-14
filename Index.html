@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Aventurero v10 (Firebase)</title>
+    <title>Panel de Aventurero v11 (Firebase Corregido)</title>
     <!-- Importación de la librería Chart.js para los gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -71,7 +71,7 @@
         .evaluation { grid-column: 1 / 3; display: flex; gap: 15px; margin-top: 5px; font-size: 0.65rem; }
         .intensity.bajo { color: #1e90ff; } .intensity.medio { color: #dcdcdc; } .intensity.alto { color: #ffdd57; }
         .performance.malo { color: #ff4757; } .performance.normal { color: #dcdcdc; } .performance.bueno { color: #32ff7e; }
-        .level-up .level-up { text-align: center; font-size: 0.8rem; color: #ffdd57; }
+        .level-up .level-up-msg { text-align: center; font-size: 0.8rem; color: #ffdd57; }
         .level-progress { font-size: 0.7rem; color: #a0a0c0; margin-top: 5px; }
         #gdrive-status { text-align: center; font-size: 0.7rem; padding: 10px; color: #a0a0c0; min-height: 20px; }
         .progress-bar-bg { position: relative; background-color: #1e1e2f; border-radius: 5px; height: 18px; width: 100%; border: 1px solid #4f4f6f; overflow: hidden; }
@@ -111,7 +111,7 @@
              <div class="container log-panel">
                 <h2>Registro</h2>
                 <ul id="log-list"></ul>
-                <div id="version-info">v10 (Firebase)</div>
+                <div id="version-info">v11 (Firebase Corregido)</div>
             </div>
         </div>
 
@@ -183,6 +183,7 @@
                                 </tr>
                             </thead>
                             <tbody id="ranking-body">
+                                <!-- El ranking se llenará aquí -->
                             </tbody>
                         </table>
                     </div>
@@ -190,21 +191,67 @@
             </div>
 
             <div id="page-descripcion" class="page-content">
-                <div class="container description-content"></div>
+                <div class="container description-content">
+                    <!-- Las descripciones de habilidades se generarán aquí -->
+                </div>
             </div>
 
         </div>
     </div>
     
     <script type="module">
-        // --- SERVICIOS DE FIREBASE (desde window) ---
-        const { auth, db, provider, signInWithPopup, signOut, onAuthStateChanged, doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs } = window.firebaseServices;
+        // ==========================================================================
+        //  1. IMPORTACIONES DE FIREBASE (SDK MODULAR v9+)
+        // ==========================================================================
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+        import { 
+            getAuth, 
+            onAuthStateChanged, 
+            GoogleAuthProvider, 
+            signInWithPopup, 
+            signOut 
+        } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            doc, 
+            getDoc, 
+            setDoc, 
+            collection, 
+            query, 
+            orderBy, 
+            limit, 
+            getDocs 
+        } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
-        // --- REFERENCIAS AL DOM ---
+        // ==========================================================================
+        //  2. CONFIGURACIÓN DE FIREBASE
+        // ==========================================================================
+        // Tu configuración personal de Firebase.
+        const firebaseConfig = {
+            apiKey: "AIzaSyAntlbZJfFyQ7NxyY5l5dXcGo4sv4Nj310", // ¡Este valor es público y está bien que esté aquí!
+            authDomain: "aventurero-ba1da.firebaseapp.com",
+            projectId: "aventurero-ba1da",
+            storageBucket: "aventurero-ba1da.appspot.com",
+            messagingSenderId: "860168195863",
+            appId: "1:860168195863:web:d3384480486cf51647f152",
+            measurementId: "G-LP6HY5K8HH"
+        };
+
+        // ==========================================================================
+        //  3. INICIALIZACIÓN DE SERVICIOS DE FIREBASE
+        // ==========================================================================
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        // ==========================================================================
+        //  4. REFERENCIAS AL DOM
+        // ==========================================================================
         const authBtn = document.getElementById('auth-btn');
         const logoutBtn = document.getElementById('logout-btn');
         const authStatus = document.getElementById('auth-status');
-        const allInputs = document.querySelectorAll('.input-section select, .input-section input, .input-section button');
+        const allInputs = document.querySelectorAll('.input-section select, .input-section input, .input-section button, .description-item button, .description-item input');
         const navRankingBtn = document.querySelector('.nav-btn[data-page="ranking"]');
         const rankingBody = document.getElementById('ranking-body');
         const registerBtn = document.getElementById('register-btn');
@@ -212,26 +259,29 @@
         const discreteBtn = document.getElementById('discrete-type-btn');
         const timeInputContainer = document.getElementById('time-input-container');
         const unitInputContainer = document.getElementById('unit-input-container');
+        const navButtons = document.querySelectorAll('.nav-btn');
+        const pages = document.querySelectorAll('.page-content');
 
-        // --- ESTADO DE LA APP ---
+        // ==========================================================================
+        //  5. ESTADO Y CONSTANTES DE LA APP
+        // ==========================================================================
         let skills = {};
         let chartInstances = {};
         let currentUser = null;
         
-        // --- CONSTANTES ---
         const initialSkillsData = {
             'Avance (Formación)': { xp: 0, level: 1, icon: '⚔️', subSkills: {}, img: 'https://placehold.co/80x80/c23616/FFFFFF?text=⚔️', category: 'combate', description: 'Todo lo que impulsa tu carrera.' },
-            'Fuerza (Salud centrada en el cuerpo)': { xp: 0, level: 1, icon: '💪', subSkills: {}, img: 'https://placehold.co/80x80/e84118/FFFFFF?text=💪', category: 'combate', description: 'Entrenamiento de fuerza, calistenia.' },
-            'Defensa (Finanzas Personales)': { xp: 0, level: 1, icon: '🛡️', subSkills: {}, img: 'https://placehold.co/80x80/4cd137/FFFFFF?text=🛡️', category: 'combate', description: 'Ahorrar, invertir, presupuestar.' },
-            'Constitución (Salud y Resistencia)': { xp: 0, level: 1, icon: '❤️', subSkills: {}, img: 'https://placehold.co/80x80/ff4757/FFFFFF?text=❤️', category: 'combate', description: 'Dormir bien, hidratación, chequeos.' },
-            'Agilidad (Salud centrada en cuerpo)': { xp: 0, level: 1, icon: '🏃', subSkills: {}, img: 'https://placehold.co/80x80/1e90ff/FFFFFF?text=🏃', category: 'combate', description: 'Cardio y Flexibilidad.' },
+            'Fuerza (Salud corporal)': { xp: 0, level: 1, icon: '💪', subSkills: {}, img: 'https://placehold.co/80x80/e84118/FFFFFF?text=💪', category: 'combate', description: 'Entrenamiento de fuerza, calistenia.' },
+            'Defensa (Finanzas)': { xp: 0, level: 1, icon: '🛡️', subSkills: {}, img: 'https://placehold.co/80x80/4cd137/FFFFFF?text=🛡️', category: 'combate', description: 'Ahorrar, invertir, presupuestar.' },
+            'Constitución (Resistencia)': { xp: 0, level: 1, icon: '❤️', subSkills: {}, img: 'https://placehold.co/80x80/ff4757/FFFFFF?text=❤️', category: 'combate', description: 'Dormir bien, hidratación, chequeos.' },
+            'Agilidad (Salud corporal)': { xp: 0, level: 1, icon: '🏃', subSkills: {}, img: 'https://placehold.co/80x80/1e90ff/FFFFFF?text=🏃', category: 'combate', description: 'Cardio y Flexibilidad.' },
             'Magia (Habilidades Sociales)': { xp: 0, level: 1, icon: '✨', subSkills: {}, img: 'https://placehold.co/80x80/8c7ae6/FFFFFF?text=✨', category: 'combate', description: 'Comunicación, empatía, negociación.' },
             'Espiritual (Salud Mental)': { xp: 0, level: 1, icon: '🧘', subSkills: {}, img: 'https://placehold.co/80x80/718093/FFFFFF?text=🧘', category: 'autocuidado', description: 'Meditar, Mindfulness, diario.' },
-            'Nutrición (Salud corporal)': { xp: 0, level: 1, icon: '�', subSkills: {}, img: 'https://placehold.co/80x80/27ae60/FFFFFF?text=🌿', category: 'autocuidado', description: 'Planificar comidas, aprender de macros.' },
+            'Nutrición (Salud corporal)': { xp: 0, level: 1, icon: '🌿', subSkills: {}, img: 'https://placehold.co/80x80/27ae60/FFFFFF?text=🌿', category: 'autocuidado', description: 'Planificar comidas, aprender de macros.' },
             'Cocina (Práctica)': { xp: 0, level: 1, icon: '🍳', subSkills: {}, img: 'https://placehold.co/80x80/fbc531/FFFFFF?text=🍳', category: 'autocuidado', description: 'Preparar comidas, nuevas recetas.' },
             'Hobbies y Relajación': { xp: 0, level: 1, icon: '🌌', subSkills: {}, img: 'https://placehold.co/80x80/3498db/FFFFFF?text=🌌', category: 'autocuidado', description: 'Pasatiempos, leer ficción, pintar.' },
             'Estudio Profundo': { xp: 0, level: 1, icon: '📚', subSkills: {}, img: 'https://placehold.co/80x80/9b59b6/FFFFFF?text=📚', category: 'artesania', description: 'Aprender una habilidad compleja.' },
-            'Creación (Proyectos Creativos)': { xp: 0, level: 1, icon: '🎨', subSkills: {}, img: 'https://placehold.co/80x80/e74c3c/FFFFFF?text=🎨', category: 'artesania', description: 'Escribir, dibujar, componer música.' },
+            'Creación (Proyectos)': { xp: 0, level: 1, icon: '🎨', subSkills: {}, img: 'https://placehold.co/80x80/e74c3c/FFFFFF?text=🎨', category: 'artesania', description: 'Escribir, dibujar, componer música.' },
             'Construcción (Organización)': { xp: 0, level: 1, icon: '🏡', subSkills: {}, img: 'https://placehold.co/80x80/f39c12/FFFFFF?text=🏡', category: 'artesania', description: 'Ordenar tu casa, optimizar espacio.'},
             'Grabación de Fuego (Disciplina)': { xp: 0, level: 1, icon: '🔥', subSkills: {}, img: 'https://placehold.co/80x80/d35400/FFFFFF?text=🔥', category: 'artesania', description: 'Construir y mantener la rutina.' }
         };
@@ -240,6 +290,10 @@
         const INTENSITY_MULTIPLIERS = { bajo: 0.8, medio: 1.0, alto: 1.2 };
         const PERFORMANCE_MULTIPLIERS = { malo: 0.7, normal: 1.0, bueno: 1.3 };
 
+        // ==========================================================================
+        //  6. LÓGICA PRINCIPAL DE LA APP
+        // ==========================================================================
+
         // --- LÓGICA DE AUTENTICACIÓN ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -247,38 +301,55 @@
                 authStatus.innerHTML = `Conectado como:<br><strong style="font-size:0.7rem;">${user.displayName}</strong>`;
                 authBtn.style.display = 'none';
                 logoutBtn.style.display = 'block';
-                allInputs.forEach(input => input.disabled = false);
                 if (navRankingBtn) navRankingBtn.style.display = 'block';
                 await loadUserData(user);
+                // Habilitar controles después de cargar datos
+                document.querySelectorAll('.input-section select, .input-section input, .input-section button, .description-item button, .description-item input').forEach(el => el.disabled = false);
             } else {
                 currentUser = null;
                 authStatus.textContent = 'Inicia sesión para comenzar.';
                 authBtn.style.display = 'block';
                 logoutBtn.style.display = 'none';
-                allInputs.forEach(input => input.disabled = true);
                 if (navRankingBtn) navRankingBtn.style.display = 'none';
                 resetLocalData();
+                // Deshabilitar controles si no hay sesión
+                 document.querySelectorAll('.input-section select, .input-section input, .input-section button, .description-item button, .description-item input').forEach(el => el.disabled = true);
             }
         });
 
         authBtn.addEventListener('click', () => {
-            signInWithPopup(auth, provider).catch(console.error);
+            signInWithPopup(auth, provider).catch(error => {
+                console.error("Error de autenticación:", error);
+                addLogEntry(`<span class="error">Error de autenticación: ${error.code}</span>`);
+            });
         });
 
         logoutBtn.addEventListener('click', () => signOut(auth));
 
-        // --- LÓGICA DE DATOS ---
+        // --- LÓGICA DE DATOS (LECTURA/ESCRITURA EN FIRESTORE) ---
         async function loadUserData(user) {
             addLogEntry('Cargando progreso desde la nube...');
             const userDocRef = doc(db, 'users', user.uid);
-            const docSnap = await getDoc(userDocRef);
-            if (docSnap.exists() && docSnap.data().skills) {
-                skills = docSnap.data().skills;
-                addLogEntry('📂 Progreso cargado.');
-            } else {
-                addLogEntry('Bienvenido, nuevo aventurero! Creando tu perfil...');
-                skills = JSON.parse(JSON.stringify(initialSkillsData));
-                await saveUserData(user, true);
+            try {
+                const docSnap = await getDoc(userDocRef);
+                if (docSnap.exists() && docSnap.data().skills) {
+                    skills = docSnap.data().skills;
+                    // Sincroniza habilidades: si se añade una nueva habilidad en el código, se le añade al usuario.
+                    for (const skillName in initialSkillsData) {
+                        if (!skills[skillName]) {
+                            skills[skillName] = JSON.parse(JSON.stringify(initialSkillsData[skillName]));
+                        }
+                    }
+                    addLogEntry('📂 Progreso cargado.');
+                } else {
+                    addLogEntry('Bienvenido, nuevo aventurero! Creando tu perfil...');
+                    skills = JSON.parse(JSON.stringify(initialSkillsData));
+                    await saveUserData(user, true);
+                }
+            } catch (error) {
+                console.error("Error al cargar datos:", error);
+                addLogEntry(`<span class="error">Error al cargar datos. Reintentando...</span>`);
+                skills = JSON.parse(JSON.stringify(initialSkillsData)); // Fallback
             }
             updateAllUI();
         }
@@ -286,33 +357,68 @@
         async function saveUserData(user, isNewUser = false) {
             if (!user) return;
             const userDocRef = doc(db, 'users', user.uid);
-            const totalXP = Object.values(skills).reduce((acc, skill) => acc + skill.xp, 0);
-            const totalLevel = Object.values(skills).reduce((acc, skill) => acc + skill.level, 0);
-            const dataToSave = { skills, displayName: user.displayName, photoURL: user.photoURL, lastUpdate: new Date().toISOString(), totalXP, totalLevel };
-            await setDoc(userDocRef, dataToSave, { merge: !isNewUser });
+            const totalXP = Object.values(skills).reduce((acc, skill) => acc + (skill.xp || 0), 0);
+            const totalLevel = Object.values(skills).reduce((acc, skill) => acc + (skill.level || 1), 0);
+            const dataToSave = { 
+                skills, 
+                displayName: user.displayName, 
+                photoURL: user.photoURL, 
+                lastUpdate: new Date().toISOString(), 
+                totalXP, 
+                totalLevel 
+            };
+            try {
+                await setDoc(userDocRef, dataToSave, { merge: !isNewUser });
+            } catch (error) {
+                console.error("Error al guardar datos:", error);
+                addLogEntry(`<span class="error">Error al guardar el progreso.</span>`);
+            }
         }
         
-        // --- RENDERIZADO Y UI ---
+        // --- FUNCIONES DE RENDERIZADO Y UI ---
         async function renderRanking() {
             if (!rankingBody) return;
-            const usersRef = collection(db, "users");
-            const q = query(usersRef, orderBy("totalXP", "desc"), limit(20));
-            const querySnapshot = await getDocs(q);
-            rankingBody.innerHTML = ''; 
-            let rank = 1;
-            querySnapshot.forEach((doc) => {
-                const userData = doc.data();
-                const row = document.createElement('tr');
-                if(currentUser && doc.id === currentUser.uid) row.classList.add('current-user-rank');
-                row.innerHTML = `<td class="rank-pos">${rank}</td><td class="rank-name"><img src="${userData.photoURL}" alt="avatar" class="rank-avatar">${userData.displayName}</td><td>${userData.totalLevel}</td><td>${userData.totalXP.toLocaleString()} XP</td>`;
-                rankingBody.appendChild(row);
-                rank++;
-            });
+            rankingBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Cargando ranking...</td></tr>';
+            try {
+                const usersRef = collection(db, "users");
+                const q = query(usersRef, orderBy("totalXP", "desc"), limit(20));
+                const querySnapshot = await getDocs(q);
+                
+                rankingBody.innerHTML = ''; 
+                let rank = 1;
+                querySnapshot.forEach((docSnap) => {
+                    const userData = docSnap.data();
+                    const row = document.createElement('tr');
+                    if(currentUser && docSnap.id === currentUser.uid) row.classList.add('current-user-rank');
+                    row.innerHTML = `
+                        <td class="rank-pos">${rank}</td>
+                        <td class="rank-name">
+                            <img src="${userData.photoURL || 'https://placehold.co/30x30/FFFFFF/000000?text=?'}" alt="avatar" class="rank-avatar">
+                            ${userData.displayName}
+                        </td>
+                        <td>${userData.totalLevel || 0}</td>
+                        <td>${(userData.totalXP || 0).toLocaleString()} XP</td>`;
+                    rankingBody.appendChild(row);
+                    rank++;
+                });
+                if (querySnapshot.empty) {
+                    rankingBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Aún no hay aventureros en el ranking. ¡Sé el primero!</td></tr>';
+                }
+            } catch (error) {
+                console.error("Error al renderizar el ranking:", error);
+                rankingBody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: #ff4757;">No se pudo cargar el ranking.</td></tr>';
+            }
         }
         
         function getXpForLevel(level) { return Math.pow(level, 2) * 1000; }
         function getLevelFromXp(xp) { if (xp < getXpForLevel(1)) return 1; return Math.min(Math.floor(Math.sqrt(xp / 1000)) + 1, 200); }
-        function calculateSkillProgress(skill) { const xpForCurrentLevel = skill.level > 1 ? getXpForLevel(skill.level - 1) : 0; const xpForNextLevel = getXpForLevel(skill.level); const xpInCurrentLevel = skill.xp - xpForCurrentLevel; const xpNeededForLevel = xpForNextLevel - xpForCurrentLevel; return { progressPercentage: xpNeededForLevel > 0 ? (xpInCurrentLevel / xpNeededForLevel) * 100 : 0 }; }
+        function calculateSkillProgress(skill) { 
+            const currentLevelXp = getXpForLevel(skill.level - 1);
+            const nextLevelXp = getXpForLevel(skill.level);
+            const xpInCurrentLevel = skill.xp - currentLevelXp;
+            const xpNeededForLevel = nextLevelXp - currentLevelXp;
+            return { progressPercentage: xpNeededForLevel > 0 ? (xpInCurrentLevel / xpNeededForLevel) * 100 : 0 };
+        }
 
         function renderDashboardCharts() {
             const container = document.getElementById('dashboard-charts-container');
@@ -326,11 +432,37 @@
                 artesania: { name: 'Habilidades de "Artesanía"', color: '#9b59b6', bgColor: 'rgba(155, 89, 182, 0.2)' }
             };
             const allSkillNames = Object.keys(skills);
-            const radarDatasets = Object.entries(CATEGORIES).map(([catId, catData]) => ({ label: catData.name, data: allSkillNames.map(name => skills[name].category === catId ? skills[name].level : 0), fill: true, backgroundColor: catData.bgColor, borderColor: catData.color, pointBackgroundColor: catData.color }));
+            const radarDatasets = Object.entries(CATEGORIES).map(([catId, catData]) => ({ 
+                label: catData.name, 
+                data: allSkillNames.map(name => skills[name].category === catId ? skills[name].level : 0), 
+                fill: true, 
+                backgroundColor: catData.bgColor, 
+                borderColor: catData.color, 
+                pointBackgroundColor: catData.color 
+            }));
             const radarCanvas = document.createElement('canvas');
-            container.insertAdjacentHTML('beforeend', '<h3>Resumen General</h3><div class="chart-container"></div>');
+            container.insertAdjacentHTML('beforeend', '<h3>Resumen General de Niveles</h3><div class="chart-container"></div>');
             container.lastElementChild.appendChild(radarCanvas);
-            chartInstances.radar = new Chart(radarCanvas, { type: 'radar', data: { labels: allSkillNames.map(name => name.split(' ')[0]), datasets: radarDatasets }, options: { responsive: true, maintainAspectRatio: false, scales: { r: { angleLines: { color: '#4f4f6f' }, grid: { color: '#4f4f6f' }, pointLabels: { font: { size: 9 }, color: '#dcdcdc' }, ticks: { color: '#1e1e2f', backdropColor: '#a0a0c0', stepSize: 1 } } } } });
+            chartInstances.radar = new Chart(radarCanvas, { 
+                type: 'radar', 
+                data: { 
+                    labels: allSkillNames.map(name => name.split(' ')[0]), 
+                    datasets: radarDatasets 
+                }, 
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { labels: { color: '#dcdcdc' } } },
+                    scales: { 
+                        r: { 
+                            angleLines: { color: '#4f4f6f' }, 
+                            grid: { color: '#4f4f6f' }, 
+                            pointLabels: { font: { size: 9 }, color: '#dcdcdc' }, 
+                            ticks: { color: '#1e1e2f', backdropColor: '#a0a0c0', stepSize: 1, font: { family: "'Press Start 2P', cursive" } } 
+                        } 
+                    } 
+                } 
+            });
         }
 
         function updateDisplay() {
@@ -338,31 +470,44 @@
             if(!skillsList) return;
             skillsList.innerHTML = '';
             if(!skills || Object.keys(skills).length === 0) return;
-            Object.entries(skills).sort(([, a], [, b]) => b.xp - a.xp).forEach(([skillName, skill]) => {
+            Object.entries(skills).sort(([, a], [, b]) => (b.xp || 0) - (a.xp || 0)).forEach(([skillName, skill]) => {
                 const li = document.createElement('li');
                 const progress = calculateSkillProgress(skill);
-                li.innerHTML = `<div class="skill-info-container"><span class="skill-name"><span class="skill-icon">${skill.icon}</span>${skillName}</span><div class="skill-meta">Lvl: ${skill.level}<br>${skill.xp.toLocaleString()} XP</div></div><div class="progress-bar-bg"><div class="progress-bar-fg" style="width: ${progress.progressPercentage}%;"></div><div class="progress-text">${Math.round(progress.progressPercentage)}%</div></div>`;
+                li.innerHTML = `
+                    <div class="skill-info-container">
+                        <span class="skill-name"><span class="skill-icon">${skill.icon}</span>${skillName}</span>
+                        <div class="skill-meta">Lvl: ${skill.level}<br>${(skill.xp || 0).toLocaleString()} XP</div>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fg" style="width: ${progress.progressPercentage}%;"></div>
+                        <div class="progress-text">${Math.round(progress.progressPercentage)}%</div>
+                    </div>`;
                 skillsList.appendChild(li);
             });
         }
 
         function populateSkillSelect() {
             const skillSelect = document.getElementById('skill-select');
+            const selectedValue = skillSelect.value;
             skillSelect.innerHTML = '';
             if (!skills || Object.keys(skills).length === 0) return;
             Object.keys(skills).sort().forEach(skillName => skillSelect.add(new Option(skillName, skillName)));
+            if (selectedValue) skillSelect.value = selectedValue;
             populateSubSkillSelect(skillSelect.value);
         }
         function populateSubSkillSelect(skillName) {
             const subSkillSelect = document.getElementById('subskill-select');
+            const selectedValue = subSkillSelect.value;
             subSkillSelect.innerHTML = '';
-            const subSkills = skills[skillName]?.subSkills;
+            if (!skills[skillName]) return;
+            const subSkills = skills[skillName].subSkills;
             if (!subSkills || Object.keys(subSkills).length === 0) {
                 subSkillSelect.disabled = true;
-                subSkillSelect.add(new Option('Añade Habilidades Concretas', '', true, true));
+                subSkillSelect.add(new Option('Añade Habilidades en "Descripción"', '', true, true));
             } else {
-                Object.keys(subSkills).sort().forEach(subSkillName => subSkillSelect.add(new Option(subSkillName, subSkillName)));
                 subSkillSelect.disabled = false;
+                Object.keys(subSkills).sort().forEach(subSkillName => subSkillSelect.add(new Option(subSkillName, subSkillName)));
+                if(selectedValue) subSkillSelect.value = selectedValue;
             }
         }
         
@@ -372,14 +517,14 @@
             logEntry.innerHTML = message;
             if (type) logEntry.classList.add(type);
             logList.prepend(logEntry);
-            while (logList.children.length > 30) logList.removeChild(logList.lastChild);
+            while (logList.children.length > 50) logList.removeChild(logList.lastChild);
         }
 
         function resetLocalData() {
             skills = JSON.parse(JSON.stringify(initialSkillsData));
             const logList = document.getElementById('log-list');
             if (logList) logList.innerHTML = '';
-            addLogEntry('🚀 ¡Bienvenido! Inicia sesión para cargar tu progreso.');
+            addLogEntry('� ¡Bienvenido! Inicia sesión para cargar tu progreso.');
             updateAllUI();
         }
         function updateAllUI() {
@@ -404,7 +549,19 @@
                         const item = document.createElement('li');
                         item.className = 'description-item';
                         item.setAttribute('data-skill', skillName);
-                        item.innerHTML = `<div class="description-header"><img src="${skill.img}" alt="Icono" class="description-img"><div><strong>${skillName}:</strong> ${skill.description}</div></div><div class="subskill-container"><h4>Habilidades Concretas:</h4><ul class="subskill-list"></ul><div class="subskill-input-group"><input type="text" placeholder="Añadir habilidad..." maxlength="50"><button class="add-subskill-btn">+</button></div></div>`;
+                        item.innerHTML = `
+                            <div class="description-header">
+                                <img src="${skill.img}" alt="Icono" class="description-img">
+                                <div><strong>${skillName}:</strong> ${skill.description}</div>
+                            </div>
+                            <div class="subskill-container">
+                                <h4>Habilidades Concretas:</h4>
+                                <ul class="subskill-list"></ul>
+                                <div class="subskill-input-group">
+                                    <input type="text" placeholder="Añadir habilidad..." maxlength="50" ${!currentUser ? 'disabled' : ''}>
+                                    <button class="add-subskill-btn" ${!currentUser ? 'disabled' : ''}>+</button>
+                                </div>
+                            </div>`;
                         categoryList.appendChild(item);
                     }
                 }
@@ -424,15 +581,23 @@
                     const li = document.createElement('li');
                     let sessionsHTML = '<div class="session-history"><h5>Historial Reciente:</h5>';
                     if (subSkillData.sessions && subSkillData.sessions.length > 0) {
-                        subSkillData.sessions.slice().reverse().slice(0, 5).forEach(session => {
+                        subSkillData.sessions.slice(-5).reverse().forEach(session => {
                             const dateStr = new Date(session.date).toLocaleDateString();
                             const activityTypeIcon = session.type === 'temporal' ? '⏱️' : '✅';
                             const activityDetail = session.type === 'temporal' ? `${session.time} min` : 'Unidad';
-                            sessionsHTML += `<div class="session-entry"><span>${activityTypeIcon} ${dateStr}: ${activityDetail}</span><span class="xp-earned">+${session.xpEarned} XP</span></div>`;
+                            sessionsHTML += `<div class="session-entry"><span>${activityTypeIcon} ${dateStr}: ${activityDetail}</span><span class="xp-earned">+${(session.xpEarned || 0).toLocaleString()} XP</span></div>`;
                         });
                     } else { sessionsHTML += '<span>No hay sesiones registradas.</span>'; }
                     sessionsHTML += '</div>';
-                    li.innerHTML = `<div class="subskill-header"><span>${subSkillName}</span> <div class="subskill-actions"><button class="edit-subskill-btn" data-name="${subSkillName}">✏️</button><button class="delete-subskill-btn" data-name="${subSkillName}">🗑️</button></div></div>${sessionsHTML}`;
+                    li.innerHTML = `
+                        <div class="subskill-header">
+                            <span>${subSkillName}</span> 
+                            <div class="subskill-actions">
+                                <button class="edit-subskill-btn" data-name="${subSkillName}">✏️</button>
+                                <button class="delete-subskill-btn" data-name="${subSkillName}">🗑️</button>
+                            </div>
+                        </div>
+                        ${sessionsHTML}`;
                     listElement.appendChild(li);
                 });
             }
@@ -441,16 +606,51 @@
             const descriptionContainer = document.querySelector('#page-descripcion .description-content');
             if (!descriptionContainer) return;
             descriptionContainer.addEventListener('click', async (e) => {
+                if (!currentUser) return; // No hacer nada si no hay sesión
                 const target = e.target.closest('button'); if (!target) return;
                 const parentItem = target.closest('.description-item'); if (!parentItem) return;
                 const skillName = parentItem.getAttribute('data-skill'); const skillData = skills[skillName];
-                if (target.classList.contains('add-subskill-btn')) { const input = parentItem.querySelector('input[type="text"]'); const value = input.value.trim(); if (value && !skillData.subSkills.hasOwnProperty(value)) { skillData.subSkills[value] = { xp: 0, sessions: [] }; await saveUserData(currentUser); renderSubSkillList(skillName); populateSubSkillSelect(document.getElementById('skill-select').value); input.value = ''; } }
-                if (target.classList.contains('edit-subskill-btn')) { const oldName = target.getAttribute('data-name'); const newName = prompt('Nuevo nombre:', oldName); if (newName && newName.trim() !== '' && newName !== oldName && !skillData.subSkills.hasOwnProperty(newName)) { Object.defineProperty(skillData.subSkills, newName, Object.getOwnPropertyDescriptor(skillData.subSkills, oldName)); delete skillData.subSkills[oldName]; await saveUserData(currentUser); renderSubSkillList(skillName); populateSubSkillSelect(document.getElementById('skill-select').value); addLogEntry(`✔️ "${oldName}" renombrada a "${newName}".`); } }
-                if (target.classList.contains('delete-subskill-btn')) { const subSkillNameToDelete = target.getAttribute('data-name'); delete skillData.subSkills[subSkillNameToDelete]; await saveUserData(currentUser); renderSubSkillList(skillName); populateSubSkillSelect(document.getElementById('skill-select').value); addLogEntry(`🗑️ Habilidad concreta "${subSkillNameToDelete}" eliminada.`); }
+                if (!skillData.subSkills) skillData.subSkills = {};
+
+                if (target.classList.contains('add-subskill-btn')) { 
+                    const input = parentItem.querySelector('input[type="text"]'); 
+                    const value = input.value.trim(); 
+                    if (value && !skillData.subSkills.hasOwnProperty(value)) { 
+                        skillData.subSkills[value] = { xp: 0, sessions: [] }; 
+                        await saveUserData(currentUser); 
+                        renderSubSkillList(skillName); 
+                        populateSubSkillSelect(document.getElementById('skill-select').value); 
+                        input.value = ''; 
+                    } 
+                }
+                else if (target.classList.contains('edit-subskill-btn')) { 
+                    const oldName = target.getAttribute('data-name'); 
+                    const newName = prompt('Nuevo nombre para la habilidad:', oldName); 
+                    if (newName && newName.trim() !== '' && newName !== oldName && !skillData.subSkills.hasOwnProperty(newName)) { 
+                        Object.defineProperty(skillData.subSkills, newName, Object.getOwnPropertyDescriptor(skillData.subSkills, oldName)); 
+                        delete skillData.subSkills[oldName]; 
+                        await saveUserData(currentUser); 
+                        renderSubSkillList(skillName); 
+                        populateSubSkillSelect(document.getElementById('skill-select').value); 
+                        addLogEntry(`✔️ "${oldName}" renombrada a "${newName}".`); 
+                    } 
+                }
+                else if (target.classList.contains('delete-subskill-btn')) { 
+                    const subSkillNameToDelete = target.getAttribute('data-name');
+                    // Usamos un modal simple o confirm para la verificación. 
+                    // `confirm` puede ser bloqueado, pero para este caso es un ejemplo.
+                    if (window.confirm(`¿Seguro que quieres borrar "${subSkillNameToDelete}"? Esta acción no se puede deshacer.`)) {
+                         delete skillData.subSkills[subSkillNameToDelete]; 
+                         await saveUserData(currentUser); 
+                         renderSubSkillList(skillName); 
+                         populateSubSkillSelect(document.getElementById('skill-select').value); 
+                         addLogEntry(`🗑️ Habilidad concreta "${subSkillNameToDelete}" eliminada.`);
+                    }
+                }
             });
         }
         
-        // --- EVENT LISTENERS ---
+        // --- EVENT LISTENERS GENERALES ---
         document.getElementById('skill-select').addEventListener('change', (e) => populateSubSkillSelect(e.target.value));
         temporalBtn.addEventListener('click', () => { temporalBtn.classList.add('active'); discreteBtn.classList.remove('active'); timeInputContainer.style.display = 'block'; unitInputContainer.style.display = 'none'; });
         discreteBtn.addEventListener('click', () => { discreteBtn.classList.add('active'); temporalBtn.classList.remove('active'); timeInputContainer.style.display = 'none'; unitInputContainer.style.display = 'block'; });
@@ -460,29 +660,66 @@
                 const selectedSkill = document.getElementById('skill-select').value;
                 const selectedSubSkill = document.getElementById('subskill-select').value;
                 const activityType = temporalBtn.classList.contains('active') ? 'temporal' : 'discrete';
-                if (!selectedSkill || document.getElementById('subskill-select').disabled || !selectedSubSkill) throw new Error('Selecciona una habilidad válida.');
+                if (!selectedSkill || document.getElementById('subskill-select').disabled || !selectedSubSkill) {
+                    throw new Error('Selecciona una habilidad general y concreta válidas.');
+                }
                 const skillData = skills[selectedSkill]; const subSkillData = skillData.subSkills[selectedSubSkill]; const oldLevel = skillData.level;
                 let timeSpent;
-                if (activityType === 'temporal') { timeSpent = parseInt(document.getElementById('time-input').value); if (isNaN(timeSpent) || timeSpent <= 0) throw new Error('Ingresa un tiempo válido.'); } 
-                else { if (!document.getElementById('unit-check').checked) throw new Error('Marca la actividad como completada.'); }
-                const xpGained = (() => { const intensity = document.getElementById('intensity-select').value; const performance = document.getElementById('performance-select').value; let baseXp = activityType === 'temporal' ? Math.floor((timeSpent / 15) * XP_PER_15_MINS) : XP_PER_UNIT; return Math.floor(baseXp * INTENSITY_MULTIPLIERS[intensity] * PERFORMANCE_MULTIPLIERS[performance]); })();
-                subSkillData.xp += xpGained; skillData.xp += xpGained;
-                subSkillData.sessions.push({ date: new Date().toISOString(), type: activityType, time: activityType === 'temporal' ? timeSpent : null, intensity: document.getElementById('intensity-select').value, performance: document.getElementById('performance-select').value, xpEarned: xpGained });
+                if (activityType === 'temporal') { 
+                    timeSpent = parseInt(document.getElementById('time-input').value, 10); 
+                    if (isNaN(timeSpent) || timeSpent <= 0) throw new Error('Ingresa un tiempo válido.'); 
+                } else { 
+                    if (!document.getElementById('unit-check').checked) throw new Error('Marca la actividad como completada.'); 
+                }
+                const intensity = document.getElementById('intensity-select').value;
+                const performance = document.getElementById('performance-select').value;
+                const baseXp = activityType === 'temporal' ? Math.floor((timeSpent / 15) * XP_PER_15_MINS) : XP_PER_UNIT;
+                const xpGained = Math.floor(baseXp * INTENSITY_MULTIPLIERS[intensity] * PERFORMANCE_MULTIPLIERS[performance]);
+                
+                if (!subSkillData.sessions) subSkillData.sessions = [];
+                subSkillData.xp = (subSkillData.xp || 0) + xpGained;
+                skillData.xp = (skillData.xp || 0) + xpGained;
+                subSkillData.sessions.push({ date: new Date().toISOString(), type: activityType, time: activityType === 'temporal' ? timeSpent : null, intensity, performance, xpEarned: xpGained });
                 skillData.level = getLevelFromXp(skillData.xp);
-                if (skillData.level > oldLevel) addLogEntry(`<div class="level-up"><span>🎉 ¡Nivel ${skillData.level} en ${selectedSkill}!</span></div>`, 'level-up');
-                addLogEntry(`<div class="log-entry"><span class="xp-gain">+${xpGained.toLocaleString()}</span>...</div>`, skillData.level > oldLevel ? 'level-up' : '');
-                document.getElementById('time-input').value = ''; document.getElementById('unit-check').checked = false;
+                
+                addLogEntry(`<div class="log-entry"><span class="xp-gain">+${xpGained.toLocaleString()}</span><span class="skill-info">${skillData.icon} ${selectedSubSkill}</span><span class="activity-details">(${selectedSkill})</span></div>`, skillData.level > oldLevel ? 'level-up' : '');
+                if (skillData.level > oldLevel) {
+                    addLogEntry(`<div class="level-up"><span class="level-up-msg">🎉 ¡Nivel ${skillData.level} en ${selectedSkill}!</span></div>`, 'level-up');
+                }
+                
+                document.getElementById('time-input').value = ''; 
+                document.getElementById('unit-check').checked = false;
                 await saveUserData(currentUser);
                 updateAllUI();
-            } catch (error) { addLogEntry(`<span class="error">✗ ${error.message}</span>`); }
+            } catch (error) { 
+                addLogEntry(`<span class="error">✗ ${error.message}</span>`); 
+            }
         });
         
-        // --- INICIALIZACIÓN ---
+        function switchPage(pageId) {
+            pages.forEach(page => page.classList.remove('active'));
+            const newPage = document.getElementById(`page-${pageId}`);
+            if (newPage) newPage.classList.add('active');
+            
+            navButtons.forEach(btn => btn.classList.remove('active'));
+            const newButton = document.querySelector(`.nav-btn[data-page="${pageId}"]`);
+            if (newButton) newButton.classList.add('active');
+            
+            if (pageId === 'ranking' && currentUser) {
+                renderRanking();
+            }
+        }
+
+        navButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const pageId = button.getAttribute('data-page');
+                switchPage(pageId);
+            });
+        });
+
+        // --- INICIALIZACIÓN AL CARGAR LA PÁGINA ---
         window.addEventListener('DOMContentLoaded', () => {
              resetLocalData();
-             setupActivityTypeSwitcher();
-             const navRankingBtn = document.querySelector('.nav-btn[data-page="ranking"]');
-             if(navRankingBtn) navRankingBtn.addEventListener('click', renderRanking);
         });
     </script>
 </body>
