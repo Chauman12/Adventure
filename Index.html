@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Aventurero v17 (Ranking Ponderado)</title>
+    <title>Panel de Aventurero v19 (Imágenes Pixeladas por IA)</title>
     <!-- Importación de Chart.js para los gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -53,7 +53,7 @@
         select, input[type="number"], input[type="text"], input[type="date"], input[type="time"], textarea { width: 100%; padding: 12px; margin-bottom: 15px; background-color: #1e1e2f; color: #dcdcdc; border: 2px solid #4f4f6f; border-radius: 4px; font-family: inherit; font-size: 0.9rem; box-sizing: border-box; }
         textarea { resize: vertical; min-height: 80px; }
         button, .nav-btn, .type-btn { width: 100%; padding: 12px; margin-bottom: 10px; color: #FFFFFF; font-weight: bold; cursor: pointer; border: none; border-radius: 4px; font-family: inherit; text-align: center; transition: all 0.1s ease-in-out; display: block; font-size: 0.8rem; }
-        #register-btn, #create-mission-btn { background: linear-gradient(145deg, #4a90e2, #3a7ac8); border-bottom: 4px solid #2a5a9a; }
+        #register-btn, #create-mission-btn, #ai-prompt-btn { background: linear-gradient(145deg, #4a90e2, #3a7ac8); border-bottom: 4px solid #2a5a9a; }
         #auth-btn { background-color: #4CAF50; border-bottom: 4px solid #388E3C; }
         #logout-btn { background-color: #555; border-bottom: 4px solid #444; display: none; }
         #reset-progress-btn { background-color: #c23616; border-bottom: 4px solid #8e240e;}
@@ -77,7 +77,26 @@
         .skill-meta { font-size: 0.7rem; color: #a0a0c0; text-align: right; }
         .description-item { display: flex; flex-direction: column; align-items: flex-start; gap: 15px; background-color: #33334f; padding: 15px; margin-bottom: 10px; border-left: 5px solid #ffdd57; border-radius: 4px; font-size: 0.75rem; line-height: 1.5; }
         .description-header { display: flex; align-items: center; gap: 15px; width: 100%;}
-        .description-img { width: 80px; height: 80px; border-radius: 4px; flex-shrink: 0; object-fit: cover; }
+        .description-img { 
+            width: 80px; 
+            height: 80px; 
+            border-radius: 4px; 
+            flex-shrink: 0; 
+            object-fit: cover; 
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            background-color: #1e1e2f;
+            border: 2px solid #4f4f6f;
+        }
+        .description-img.loading {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { background-color: #1e1e2f; }
+            50% { background-color: #4a2f7a; }
+            100% { background-color: #1e1e2f; }
+        }
         .subskill-container { width: 100%; }
         .subskill-list { list-style: none; padding: 0; }
         .subskill-list li { display: flex; flex-direction: column; align-items: flex-start; background-color: #2a2a40; padding: 12px; border-radius: 3px; margin-bottom: 8px; font-size: 0.9rem; gap: 10px; border-left: 3px solid #6a4f9a; }
@@ -122,7 +141,7 @@
         .modal-btn.confirm { background-color: #c23616; border-bottom: 4px solid #8e240e; }
         .modal-btn.cancel { background-color: #555; border-bottom: 4px solid #444; }
 
-        /* Estilos de la tabla de Ranking */
+        /* Estilos de la tabla de Ranking y Asistente IA */
         #ranking-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         #ranking-table th, #ranking-table td { padding: 12px; border-bottom: 2px solid #4f4f6f; text-align: left; font-size: 0.8rem; }
         #ranking-table th { color: #ffdd57; font-size: 0.9rem; }
@@ -130,6 +149,7 @@
         #ranking-table .rank-name { display: flex; align-items: center; gap: 10px; }
         #ranking-table .rank-avatar { width: 30px; height: 30px; border-radius: 50%; }
         .current-user-rank { background-color: rgba(74, 144, 226, 0.2); }
+        #ai-response-container { margin-top: 20px; padding: 15px; background-color: #1e1e2f; border-radius: 5px; min-height: 100px; white-space: pre-wrap; line-height: 1.6; }
 
         /* ==========================================================================
            8. DISEÑO RESPONSIVO (PARA MÓVILES)
@@ -151,6 +171,7 @@
                 <button class="nav-btn active" data-page="dashboard">Panel de Control</button> 
                 <button class="nav-btn" data-page="entrenamiento">Entrenamiento</button>
                 <button class="nav-btn" data-page="ranking" style="display: none;">Aventureros</button>
+                <button class="nav-btn" data-page="asistente">Asistente IA</button>
                 <button class="nav-btn" data-page="misiones">Misiones</button>
                 <button class="nav-btn" data-page="descripcion">Descripción</button>
                 <button class="nav-btn" data-page="configuracion">Configuración</button>
@@ -165,7 +186,7 @@
             <div class="container log-panel">
                 <h2>Registro</h2>
                 <ul id="log-list"></ul>
-                <div id="version-info">v17 (Ranking Ponderado)</div>
+                <div id="version-info">v19 (Imágenes Pixeladas por IA)</div>
             </div>
         </div>
 
@@ -174,9 +195,7 @@
             <div id="page-dashboard" class="page-content active">
                 <div class="container">
                     <h1>Panel de Control</h1>
-                    <div id="dashboard-charts-container">
-                         <!-- Los gráficos del dashboard se generarán aquí -->
-                    </div>
+                    <div id="dashboard-charts-container"></div>
                 </div>
             </div>
 
@@ -224,7 +243,7 @@
                 </div>
             </div>
 
-             <div id="page-ranking" class="page-content">
+            <div id="page-ranking" class="page-content">
                 <div class="container">
                     <h1>Aventureros Destacados</h1>
                     <p style="font-size: 0.8rem; color: #a0a0c0; text-align:center; line-height: 1.5;">Observa a los aventureros con el desarrollo más integral, basado en su diversificación de habilidades (niveles) y su experiencia (XP).</p>
@@ -242,6 +261,16 @@
                             <tbody id="ranking-body"></tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+            
+            <div id="page-asistente" class="page-content">
+                <div class="container">
+                    <h1>Asistente IA</h1>
+                    <p style="font-size: 0.8rem; color: #a0a0c0; text-align:center; line-height: 1.5;">Pide consejo o inspiración a la IA. Ej: "Dame 5 ideas para la habilidad de Cocina" o "Crea una rutina de 3 días para mejorar mi Agilidad".</p>
+                    <textarea id="ai-prompt-input" rows="4" placeholder="Escribe tu consulta aquí..." disabled></textarea>
+                    <button id="ai-prompt-btn" disabled>Enviar Consulta</button>
+                    <div id="ai-response-container">La respuesta de la IA aparecerá aquí...</div>
                 </div>
             </div>
 
@@ -282,8 +311,8 @@
     <!-- Modal de Confirmación -->
     <div id="confirm-modal" class="modal-overlay">
         <div class="modal-content">
-            <h3>¿Estás seguro?</h3>
-            <p>Todo tu progreso se borrará de la nube y la aplicación se reiniciará a su estado inicial. Esta acción no se puede deshacer.</p>
+            <h3 id="modal-title">¿Estás seguro?</h3>
+            <p id="modal-text">El progreso se borrará de forma permanente.</p>
             <div class="modal-actions">
                 <button id="confirm-delete-btn" class="modal-btn confirm">Sí, borrar</button>
                 <button id="cancel-delete-btn" class="modal-btn cancel">Cancelar</button>
@@ -300,7 +329,7 @@
         import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
         // ==========================================================================
-        //  2. CONFIGURACIÓN DE FIREBASE (reemplazar con tus credenciales)
+        //  2. CONFIGURACIÓN DE FIREBASE Y SERVICIOS EXTERNOS
         // ==========================================================================
         const firebaseConfig = {
             apiKey: "AIzaSyAntlbZJfFyQ7NxyY5l5dXcGo4sv4Nj310",
@@ -311,7 +340,7 @@
             appId: "1:860168195863:web:d3384480486cf51647f152",
             measurementId: "G-LP6HY5K8HH"
         };
-
+        
         // ==========================================================================
         //  3. INICIALIZACIÓN DE SERVICIOS Y ESTADO DE LA APP
         // ==========================================================================
@@ -323,6 +352,7 @@
         let skills = {};
         let chartInstances = {};
         let currentUser = null;
+        let currentModalAction = null;
 
         const initialSkillsData = {
             'Avance (Formación)': { xp: 0, level: 0, icon: '⚔️', subSkills: {}, img: 'https://placehold.co/80x80/c23616/FFFFFF?text=⚔️', category: 'combate', description: 'Todo lo que impulsa tu carrera. Estudiar, hacer networking, desarrollar un proyecto laboral, buscar un ascenso, trabajar en equipo, puntualidad.' },
@@ -335,7 +365,7 @@
             'Nutrición (Salud corporal)': { xp: 0, level: 0, icon: '🌿', subSkills: {}, img: 'https://placehold.co/80x80/27ae60/FFFFFF?text=🌿', category: 'autocuidado', description: 'Aprender sobre macronutrientes, planificar comidas saludables, reducir procesados.' },
             'Cocina (Práctica)': { xp: 0, level: 0, icon: '🍳', subSkills: {}, img: 'https://placehold.co/80x80/fbc531/FFFFFF?text=🍳', category: 'autocuidado', description: 'Preparar tus propias comidas, aprender nuevas recetas, batch cooking.' },
             'Hobbies y Relajación (en la Nada y en el Todo a la vez)': { xp: 0, level: 0, icon: '🌌', subSkills: {}, img: 'https://placehold.co/80x80/3498db/FFFFFF?text=🌌', category: 'autocuidado', description: 'Dedicar tiempo a pasatiempos que te relajen y disfrutes sin un fin productivo. Leer ficción, tocar un instrumento, pintar, pescar.' },
-            'Estudio Profundo': { xp: 0, level: 0, icon: '📚', subSkills: {}, img: 'https://placehold.co/80x80/9b59b6/FFFFFF?text=�', category: 'artesania', description: 'Aprender una habilidad "dura" y compleja. Programación, un nuevo idioma, carpintería, edición de video.' },
+            'Estudio Profundo': { xp: 0, level: 0, icon: '📚', subSkills: {}, img: 'https://placehold.co/80x80/9b59b6/FFFFFF?text=📚', category: 'artesania', description: 'Aprender una habilidad "dura" y compleja. Programación, un nuevo idioma, carpintería, edición de video.' },
             'Creación (Proyectos Creativos)': { xp: 0, level: 0, icon: '🎨', subSkills: {}, img: 'https://placehold.co/80x80/e74c3c/FFFFFF?text=🎨', category: 'artesania', description: 'Escribir, dibujar, componer música, crear contenido para tus seres queridos o las redes.' },
             'Construcción (Organización)': { xp: 0, level: 0, icon: '🏡', subSkills: {}, img: 'https://placehold.co/80x80/f39c12/FFFFFF?text=🏡', category: 'artesania', description: 'Ordenar tu casa, optimizar tu espacio de trabajo, bricolaje (DIY), minimalismo.'},
             'Grabación de Fuego (Disciplina)': { xp: 0, level: 0, icon: '🔥', subSkills: {}, img: 'https://placehold.co/80x80/d35400/FFFFFF?text=🔥', category: 'artesania', description: 'La habilidad "meta". Se enfoca en el acto de construir y mantener la rutina. La clave es la simplicidad y la consistencia.' }
@@ -365,6 +395,8 @@
         const descriptionContainer = document.querySelector('#page-descripcion .description-content');
         const resetProgressBtn = document.getElementById('reset-progress-btn');
         const confirmModal = document.getElementById('confirm-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalText = document.getElementById('modal-text');
         const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
         const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
         const createMissionBtn = document.getElementById('create-mission-btn');
@@ -374,6 +406,9 @@
         const missionDescriptionInput = document.getElementById('mission-description');
         const navRankingBtn = document.querySelector('.nav-btn[data-page="ranking"]');
         const rankingBody = document.getElementById('ranking-body');
+        const aiPromptInput = document.getElementById('ai-prompt-input');
+        const aiPromptBtn = document.getElementById('ai-prompt-btn');
+        const aiResponseContainer = document.getElementById('ai-response-container');
         const allInputs = document.querySelectorAll('button, select, input, textarea');
 
         // ==========================================================================
@@ -433,6 +468,7 @@
                 skills = JSON.parse(JSON.stringify(initialSkillsData));
             } finally {
                 updateAllUI();
+                await checkAndGenerateImages();
             }
         }
 
@@ -454,7 +490,7 @@
                 score
             };
             try {
-                await setDoc(userDocRef, dataToSave, { merge: !isNewUser });
+                await setDoc(userDocRef, dataToSave, { merge: true }); // Always merge to be safe
             } catch (error) {
                 console.error("Error al guardar datos:", error);
                 addLogEntry(`<span class="error">Error al guardar el progreso.</span>`);
@@ -477,7 +513,7 @@
         }
 
         // ==========================================================================
-        //  6. LÓGICA DE JUEGO (CÁLCULOS Y RENDERIZADO)
+        //  6. LÓGICA DE JUEGO, IA Y RENDERIZADO
         // ==========================================================================
         function getXpForLevel(level) { return Math.pow(level, 2) * 1000; }
         
@@ -495,6 +531,103 @@
             const xpEarnedInThisLevel = skill.xp - xpAtStartOfCurrentLevel;
             const progressPercentage = (xpEarnedInThisLevel / xpNeededForThisLevel) * 100;
             return { progressPercentage: Math.max(0, Math.min(progressPercentage, 100)) };
+        }
+
+        async function getAIResponse(prompt) {
+            aiResponseContainer.textContent = 'Generando respuesta...';
+            aiPromptBtn.disabled = true;
+
+            const apiKey = ""; // Dejar vacío, el entorno lo gestionará
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{ text: prompt }]
+                        }]
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error de la API: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts && result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    aiResponseContainer.textContent = text;
+                } else {
+                    throw new Error("Respuesta de la API inválida.");
+                }
+
+            } catch (error) {
+                console.error("Error al llamar a la API de Gemini:", error);
+                aiResponseContainer.textContent = `Error: No se pudo obtener la respuesta. ${error.message}`;
+            } finally {
+                aiPromptBtn.disabled = false;
+            }
+        }
+
+        async function generateAndSaveImageForSkill(skillName) {
+            const skill = skills[skillName];
+            if (!skill || skill.generatedImgUrl) return false;
+
+            const sanitizedSkillName = skillName.replace(/[^a-zA-Z0-9]/g, '');
+            const imgElement = document.getElementById(`img-${sanitizedSkillName}`);
+            if (imgElement) imgElement.classList.add('loading');
+            
+            const prompt = `A minimalist 8-bit pixel art icon representing the skill of '${skillName}'. Simple design, on a dark futuristic background.`;
+            const payload = { instances: [{ prompt }], parameters: { "sampleCount": 1 } };
+            const apiKey = ""; 
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
+                const result = await response.json();
+                if (result.predictions && result.predictions[0]?.bytesBase64Encoded) {
+                    const imageUrl = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+                    skill.generatedImgUrl = imageUrl;
+                    if (imgElement) {
+                        imgElement.src = imageUrl;
+                        imgElement.classList.remove('loading');
+                    }
+                    return true;
+                } else {
+                    throw new Error("Invalid API response.");
+                }
+            } catch (error) {
+                console.error(`Error generating image for ${skillName}:`, error);
+                if (imgElement) imgElement.classList.remove('loading');
+                return false;
+            }
+        }
+
+        async function checkAndGenerateImages() {
+            let wasDataUpdated = false;
+            const generationPromises = [];
+
+            for (const skillName of Object.keys(skills)) {
+                if (!skills[skillName].generatedImgUrl) {
+                    generationPromises.push(generateAndSaveImageForSkill(skillName));
+                }
+            }
+            
+            const results = await Promise.all(generationPromises);
+            wasDataUpdated = results.some(result => result === true);
+
+            if (wasDataUpdated && currentUser) {
+                addLogEntry('🎨 Nuevos íconos de habilidad generados. Guardando...');
+                await saveUserData(currentUser);
+            }
         }
 
         async function renderRanking() {
@@ -531,7 +664,7 @@
                 rankingBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: #ff4757;">No se pudo cargar el ranking.</td></tr>';
             }
         }
-        // ... (resto de funciones de renderizado y UI)
+        
         function enableAllInputs(isEnabled) {
             allInputs.forEach(el => {
                 if (el.id === 'auth-btn') el.disabled = isEnabled;
@@ -549,7 +682,7 @@
             skills = JSON.parse(JSON.stringify(initialSkillsData));
             if(logList) logList.innerHTML = '';
             addLogEntry('🚀 ¡Bienvenido! Inicia sesión para cargar tu progreso.');
-            updateAllUI();
+            // No llamar a updateAllUI aquí para evitar renderizar sin usuario
         }
         function addLogEntry(message, type = '') {
             const logEntry = document.createElement('li');
@@ -673,10 +806,11 @@
                 for (const skillName in skills) {
                     if (skills[skillName]?.category === categoryId) {
                         const skill = skills[skillName];
+                        const sanitizedSkillName = skillName.replace(/[^a-zA-Z0-9]/g, '');
                         const item = document.createElement('li');
                         item.className = 'description-item';
                         item.setAttribute('data-skill', skillName);
-                        item.innerHTML = `<div class="description-header"><img src="${skill.img}" alt="Icono" class="description-img"><div><strong>${skillName}:</strong> ${skill.description}</div></div><div class="subskill-container"><h4>Habilidades Concretas:</h4><ul class="subskill-list"></ul><div class="subskill-input-group"><input type="text" placeholder="Añadir habilidad..." maxlength="50" ${!currentUser ? 'disabled' : ''}><button class="add-subskill-btn" ${!currentUser ? 'disabled' : ''}>+</button></div></div>`;
+                        item.innerHTML = `<div class="description-header"><img src="${skill.generatedImgUrl || skill.img}" alt="Icono" class="description-img" id="img-${sanitizedSkillName}"><div><strong>${skillName}:</strong> ${skill.description}</div></div><div class="subskill-container"><h4>Habilidades Concretas:</h4><ul class="subskill-list"></ul><div class="subskill-input-group"><input type="text" placeholder="Añadir habilidad..." maxlength="50" ${!currentUser ? 'disabled' : ''}><button class="add-subskill-btn" ${!currentUser ? 'disabled' : ''}>+</button></div></div>`;
                         categoryList.appendChild(item);
                     }
                 }
@@ -707,6 +841,12 @@
                     listElement.appendChild(li);
                 });
             }
+        }
+        function showModal(config) {
+            modalTitle.textContent = config.title;
+            modalText.textContent = config.text;
+            currentModalAction = config.action;
+            confirmModal.style.display = 'flex';
         }
 
         // ==========================================================================
@@ -804,20 +944,37 @@
                         populateSubSkillSelect(skillSelect.value); 
                         addLogEntry(`✔️ "${oldName}" renombrada a "${newName}".`); 
                     } 
-                } else if (target.classList.contains('delete-subskill-btn')) { 
+                } else if (target.classList.contains('delete-subskill-btn')) {
                     const subSkillNameToDelete = target.getAttribute('data-name');
-                    delete skillData.subSkills[subSkillNameToDelete]; 
-                    await saveUserData(currentUser); 
-                    renderSubSkillList(skillName); 
-                    populateSubSkillSelect(skillSelect.value); 
-                    addLogEntry(`🗑️ Habilidad "${subSkillNameToDelete}" eliminada.`);
+                    showModal({
+                        title: 'Confirmar Eliminación',
+                        text: `¿Seguro que quieres borrar la habilidad "${subSkillNameToDelete}"? Esta acción no se puede deshacer.`,
+                        action: () => {
+                            delete skillData.subSkills[subSkillNameToDelete]; 
+                            saveUserData(currentUser).then(() => {
+                                renderSubSkillList(skillName); 
+                                populateSubSkillSelect(skillSelect.value); 
+                                addLogEntry(`🗑️ Habilidad "${subSkillNameToDelete}" eliminada.`);
+                            });
+                        }
+                    });
                 }
             });
-            resetProgressBtn.addEventListener('click', () => { confirmModal.style.display = 'flex'; });
+            resetProgressBtn.addEventListener('click', () => {
+                showModal({
+                    title: 'Borrar Progreso en la Nube',
+                    text: 'Todo tu progreso se borrará de la nube y la aplicación se reiniciará a su estado inicial. Esta acción no se puede deshacer.',
+                    action: deleteUserData
+                });
+            });
             cancelDeleteBtn.addEventListener('click', () => { confirmModal.style.display = 'none'; });
-            confirmDeleteBtn.addEventListener('click', async () => {
+            confirmDeleteBtn.addEventListener('click', () => {
+                if(currentModalAction) currentModalAction();
                 confirmModal.style.display = 'none';
-                await deleteUserData();
+            });
+            aiPromptBtn.addEventListener('click', () => {
+                const prompt = aiPromptInput.value;
+                if(prompt.trim()) getAIResponse(prompt);
             });
             createMissionBtn.addEventListener('click', () => {
                 const title = missionTitleInput.value;
