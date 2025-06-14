@@ -6,35 +6,6 @@
     <title>Panel de Aventurero v10 (Firebase)</title>
     <!-- Importación de la librería Chart.js para los gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- SDK de Firebase -->
-    <script type="module">
-        // Import the functions you need from the SDKs you need
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
-        
-        // ========================================================================
-        // Your web app's Firebase configuration
-        // ========================================================================
-        const firebaseConfig = {
-            apiKey: "AIzaSyAntlbZJfFyQ7NxyY5l5dXcGo4sv4Nj310",
-            authDomain: "aventurero-ba1da.firebaseapp.com",
-            projectId: "aventurero-ba1da",
-            storageBucket: "aventurero-ba1da.appspot.com",
-            messagingSenderId: "860168195863",
-            appId: "1:860168195863:web:d3384480486cf51647f152",
-            measurementId: "G-LP6HY5K8HH"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const provider = new GoogleAuthProvider();
-
-        // Make Firebase services globally available for the main script
-        window.firebaseServices = { auth, db, provider, signInWithPopup, signOut, onAuthStateChanged, doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs };
-    </script>
     <style>
         /* ==========================================================================
            ESTILOS GENERALES
@@ -226,8 +197,6 @@
     </div>
     
     <script type="module">
-        // Este script contiene la lógica principal de la aplicación
-        
         // --- SERVICIOS DE FIREBASE (desde window) ---
         const { auth, db, provider, signInWithPopup, signOut, onAuthStateChanged, doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs } = window.firebaseServices;
 
@@ -511,6 +480,7 @@
         // --- INICIALIZACIÓN ---
         window.addEventListener('DOMContentLoaded', () => {
              resetLocalData();
+             setupActivityTypeSwitcher();
              const navRankingBtn = document.querySelector('.nav-btn[data-page="ranking"]');
              if(navRankingBtn) navRankingBtn.addEventListener('click', renderRanking);
         });
