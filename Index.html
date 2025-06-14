@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Aventurero v12 (CSP Corregido)</title>
+    <title>Panel de Aventurero v13 (CSP Corregido v2)</title>
     <!-- Importación de la librería Chart.js para los gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -111,7 +111,7 @@
              <div class="container log-panel">
                 <h2>Registro</h2>
                 <ul id="log-list"></ul>
-                <div id="version-info">v12 (CSP Corregido)</div>
+                <div id="version-info">v13 (CSP Corregido v2)</div>
             </div>
         </div>
 
@@ -222,6 +222,11 @@
             limit, 
             getDocs 
         } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+
+        // *** NUEVA CORRECCIÓN CSP ***
+        // Deshabilitar animaciones que pueden usar 'eval' bajo el capó en algunos entornos.
+        Chart.defaults.animation = false;
+
 
         // ==========================================================================
         //  2. CONFIGURACIÓN DE FIREBASE
@@ -452,13 +457,11 @@
                 options: { 
                     responsive: true, 
                     maintainAspectRatio: false,
-                    // *** INICIO DE LA CORRECCIÓN CSP ***
                     plugins: { 
                         legend: { 
                             labels: { color: '#dcdcdc' } 
                         },
                         tooltip: {
-                            // Usar callbacks para generar texto del tooltip evita 'eval'
                             callbacks: {
                                 label: function(context) {
                                     let label = context.dataset.label || '';
@@ -473,7 +476,6 @@
                             }
                         }
                     },
-                    // *** FIN DE LA CORRECCIÓN CSP ***
                     scales: { 
                         r: { 
                             angleLines: { color: '#4f4f6f' }, 
@@ -481,7 +483,6 @@
                             pointLabels: { 
                                 font: { size: 9 }, 
                                 color: '#dcdcdc'
-                                // El callback aquí no es estrictamente necesario si el de tooltip ya funciona, pero es una buena práctica
                             }, 
                             ticks: { 
                                 color: '#1e1e2f', 
