@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Aventurero v16 (Nivel 0)</title>
+    <title>Panel de Aventurero v17 (Ranking Ponderado)</title>
     <!-- Importación de Chart.js para los gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -122,6 +122,15 @@
         .modal-btn.confirm { background-color: #c23616; border-bottom: 4px solid #8e240e; }
         .modal-btn.cancel { background-color: #555; border-bottom: 4px solid #444; }
 
+        /* Estilos de la tabla de Ranking */
+        #ranking-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        #ranking-table th, #ranking-table td { padding: 12px; border-bottom: 2px solid #4f4f6f; text-align: left; font-size: 0.8rem; }
+        #ranking-table th { color: #ffdd57; font-size: 0.9rem; }
+        #ranking-table .rank-pos { font-size: 1.2rem; text-align: center; }
+        #ranking-table .rank-name { display: flex; align-items: center; gap: 10px; }
+        #ranking-table .rank-avatar { width: 30px; height: 30px; border-radius: 50%; }
+        .current-user-rank { background-color: rgba(74, 144, 226, 0.2); }
+
         /* ==========================================================================
            8. DISEÑO RESPONSIVO (PARA MÓVILES)
            ========================================================================== */
@@ -141,6 +150,7 @@
                 <h2>Navegación</h2>
                 <button class="nav-btn active" data-page="dashboard">Panel de Control</button> 
                 <button class="nav-btn" data-page="entrenamiento">Entrenamiento</button>
+                <button class="nav-btn" data-page="ranking" style="display: none;">Aventureros</button>
                 <button class="nav-btn" data-page="misiones">Misiones</button>
                 <button class="nav-btn" data-page="descripcion">Descripción</button>
                 <button class="nav-btn" data-page="configuracion">Configuración</button>
@@ -155,7 +165,7 @@
             <div class="container log-panel">
                 <h2>Registro</h2>
                 <ul id="log-list"></ul>
-                <div id="version-info">v16 (Nivel 0)</div>
+                <div id="version-info">v17 (Ranking Ponderado)</div>
             </div>
         </div>
 
@@ -214,6 +224,27 @@
                 </div>
             </div>
 
+             <div id="page-ranking" class="page-content">
+                <div class="container">
+                    <h1>Aventureros Destacados</h1>
+                    <p style="font-size: 0.8rem; color: #a0a0c0; text-align:center; line-height: 1.5;">Observa a los aventureros con el desarrollo más integral, basado en su diversificación de habilidades (niveles) y su experiencia (XP).</p>
+                    <div id="ranking-container">
+                        <table id="ranking-table">
+                            <thead>
+                                <tr>
+                                    <th>Pos.</th>
+                                    <th>Aventurero</th>
+                                    <th>Puntaje</th>
+                                    <th>Nivel Total</th>
+                                    <th>XP Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ranking-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <div id="page-misiones" class="page-content">
                 <div class="container">
                     <h1>Misiones</h1>
@@ -266,7 +297,7 @@
         // ==========================================================================
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
         // ==========================================================================
         //  2. CONFIGURACIÓN DE FIREBASE (reemplazar con tus credenciales)
@@ -304,7 +335,7 @@
             'Nutrición (Salud corporal)': { xp: 0, level: 0, icon: '🌿', subSkills: {}, img: 'https://placehold.co/80x80/27ae60/FFFFFF?text=🌿', category: 'autocuidado', description: 'Aprender sobre macronutrientes, planificar comidas saludables, reducir procesados.' },
             'Cocina (Práctica)': { xp: 0, level: 0, icon: '🍳', subSkills: {}, img: 'https://placehold.co/80x80/fbc531/FFFFFF?text=🍳', category: 'autocuidado', description: 'Preparar tus propias comidas, aprender nuevas recetas, batch cooking.' },
             'Hobbies y Relajación (en la Nada y en el Todo a la vez)': { xp: 0, level: 0, icon: '🌌', subSkills: {}, img: 'https://placehold.co/80x80/3498db/FFFFFF?text=🌌', category: 'autocuidado', description: 'Dedicar tiempo a pasatiempos que te relajen y disfrutes sin un fin productivo. Leer ficción, tocar un instrumento, pintar, pescar.' },
-            'Estudio Profundo': { xp: 0, level: 0, icon: '📚', subSkills: {}, img: 'https://placehold.co/80x80/9b59b6/FFFFFF?text=📚', category: 'artesania', description: 'Aprender una habilidad "dura" y compleja. Programación, un nuevo idioma, carpintería, edición de video.' },
+            'Estudio Profundo': { xp: 0, level: 0, icon: '📚', subSkills: {}, img: 'https://placehold.co/80x80/9b59b6/FFFFFF?text=�', category: 'artesania', description: 'Aprender una habilidad "dura" y compleja. Programación, un nuevo idioma, carpintería, edición de video.' },
             'Creación (Proyectos Creativos)': { xp: 0, level: 0, icon: '🎨', subSkills: {}, img: 'https://placehold.co/80x80/e74c3c/FFFFFF?text=🎨', category: 'artesania', description: 'Escribir, dibujar, componer música, crear contenido para tus seres queridos o las redes.' },
             'Construcción (Organización)': { xp: 0, level: 0, icon: '🏡', subSkills: {}, img: 'https://placehold.co/80x80/f39c12/FFFFFF?text=🏡', category: 'artesania', description: 'Ordenar tu casa, optimizar tu espacio de trabajo, bricolaje (DIY), minimalismo.'},
             'Grabación de Fuego (Disciplina)': { xp: 0, level: 0, icon: '🔥', subSkills: {}, img: 'https://placehold.co/80x80/d35400/FFFFFF?text=🔥', category: 'artesania', description: 'La habilidad "meta". Se enfoca en el acto de construir y mantener la rutina. La clave es la simplicidad y la consistencia.' }
@@ -341,20 +372,20 @@
         const missionDateInput = document.getElementById('mission-date');
         const missionTimeInput = document.getElementById('mission-time');
         const missionDescriptionInput = document.getElementById('mission-description');
-        
-        // Inputs a habilitar/deshabilitar
+        const navRankingBtn = document.querySelector('.nav-btn[data-page="ranking"]');
+        const rankingBody = document.getElementById('ranking-body');
         const allInputs = document.querySelectorAll('button, select, input, textarea');
 
         // ==========================================================================
         //  5. LÓGICA DE AUTENTICACIÓN Y DATOS (FIREBASE)
         // ==========================================================================
-
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
                 authStatus.innerHTML = `Conectado como:<br><strong style="font-size:0.7rem;">${user.displayName}</strong>`;
                 authBtn.style.display = 'none';
                 logoutBtn.style.display = 'block';
+                if (navRankingBtn) navRankingBtn.style.display = 'block';
                 await loadUserData(user);
                 enableAllInputs(true);
             } else {
@@ -362,6 +393,7 @@
                 authStatus.textContent = 'Inicia sesión para comenzar.';
                 authBtn.style.display = 'block';
                 logoutBtn.style.display = 'none';
+                if (navRankingBtn) navRankingBtn.style.display = 'none';
                 resetLocalData();
                 enableAllInputs(false);
             }
@@ -383,11 +415,9 @@
                 const docSnap = await getDoc(userDocRef);
                 if (docSnap.exists() && docSnap.data().skills) {
                     const loadedSkills = docSnap.data().skills;
-                    // Hidratar datos: asegurar que todas las habilidades base existen
                     skills = JSON.parse(JSON.stringify(initialSkillsData));
                     for (const skillName in loadedSkills) {
                         if (skills.hasOwnProperty(skillName)) {
-                             // Copia profunda de los datos guardados sobre la plantilla inicial
                             Object.assign(skills[skillName], JSON.parse(JSON.stringify(loadedSkills[skillName])));
                         }
                     }
@@ -395,7 +425,7 @@
                 } else {
                     addLogEntry('Bienvenido, nuevo aventurero! Creando tu perfil...');
                     skills = JSON.parse(JSON.stringify(initialSkillsData));
-                    await saveUserData(user, true); // Guardar perfil inicial
+                    await saveUserData(user, true);
                 }
             } catch (error) {
                 console.error("Error al cargar datos:", error);
@@ -409,9 +439,19 @@
         async function saveUserData(user, isNewUser = false) {
             if (!user) return;
             const userDocRef = doc(db, 'users', user.uid);
+            
+            const totalXP = Object.values(skills).reduce((acc, skill) => acc + (skill.xp || 0), 0);
+            const totalLevel = Object.values(skills).reduce((acc, skill) => acc + (skill.level || 0), 0);
+            const score = totalLevel * totalXP;
+
             const dataToSave = { 
                 skills,
-                lastUpdate: new Date().toISOString()
+                displayName: user.displayName,
+                photoURL: user.photoURL,
+                lastUpdate: new Date().toISOString(),
+                totalXP,
+                totalLevel,
+                score
             };
             try {
                 await setDoc(userDocRef, dataToSave, { merge: !isNewUser });
@@ -437,11 +477,9 @@
         }
 
         // ==========================================================================
-        //  6. LÓGICA DE JUEGO (CÁLCULOS)
+        //  6. LÓGICA DE JUEGO (CÁLCULOS Y RENDERIZADO)
         // ==========================================================================
-        function getXpForLevel(level) { 
-            return Math.pow(level, 2) * 1000;
-        }
+        function getXpForLevel(level) { return Math.pow(level, 2) * 1000; }
         
         function getLevelFromXp(xp) { 
             if (!xp || xp < 1) return 0;
@@ -453,41 +491,53 @@
             const xpAtStartOfCurrentLevel = getXpForLevel(skill.level);
             const xpAtStartOfNextLevel = getXpForLevel(skill.level + 1);
             const xpNeededForThisLevel = xpAtStartOfNextLevel - xpAtStartOfCurrentLevel;
-
-            if (xpNeededForThisLevel <= 0) { // Max level or error case
-                return { progressPercentage: skill.xp >= xpAtStartOfCurrentLevel ? 100 : 0 };
-            }
-
+            if (xpNeededForThisLevel <= 0) return { progressPercentage: 100 };
             const xpEarnedInThisLevel = skill.xp - xpAtStartOfCurrentLevel;
             const progressPercentage = (xpEarnedInThisLevel / xpNeededForThisLevel) * 100;
-            
             return { progressPercentage: Math.max(0, Math.min(progressPercentage, 100)) };
         }
 
-        function calculateXpGained(activityType, timeSpent) {
-            const intensity = document.getElementById('intensity-select').value;
-            const performance = document.getElementById('performance-select').value;
-            let baseXp = activityType === 'temporal' 
-                ? Math.floor((timeSpent / 15) * XP_PER_15_MINS)
-                : XP_PER_UNIT;
-            return Math.floor(baseXp * INTENSITY_MULTIPLIERS[intensity] * PERFORMANCE_MULTIPLIERS[performance]);
+        async function renderRanking() {
+            if (!rankingBody) return;
+            rankingBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Cargando aventureros...</td></tr>';
+            try {
+                const usersRef = collection(db, "users");
+                const q = query(usersRef, orderBy("score", "desc"), limit(20));
+                const querySnapshot = await getDocs(q);
+                
+                rankingBody.innerHTML = ''; 
+                let rank = 1;
+                querySnapshot.forEach((docSnap) => {
+                    const userData = docSnap.data();
+                    const row = document.createElement('tr');
+                    if(currentUser && docSnap.id === currentUser.uid) row.classList.add('current-user-rank');
+                    row.innerHTML = `
+                        <td class="rank-pos">${rank}</td>
+                        <td class="rank-name">
+                            <img src="${userData.photoURL || 'https://placehold.co/30x30/FFFFFF/000000?text=?'}" alt="avatar" class="rank-avatar">
+                            ${userData.displayName}
+                        </td>
+                        <td>${(userData.score || 0).toLocaleString()}</td>
+                        <td>${userData.totalLevel || 0}</td>
+                        <td>${(userData.totalXP || 0).toLocaleString()}</td>`;
+                    rankingBody.appendChild(row);
+                    rank++;
+                });
+                if (querySnapshot.empty) {
+                    rankingBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Aún no hay aventureros destacados.</td></tr>';
+                }
+            } catch (error) {
+                console.error("Error al renderizar el ranking:", error);
+                rankingBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: #ff4757;">No se pudo cargar el ranking.</td></tr>';
+            }
         }
-
-        // ==========================================================================
-        //  7. LÓGICA DE UI Y RENDERIZADO
-        // ==========================================================================
-        
+        // ... (resto de funciones de renderizado y UI)
         function enableAllInputs(isEnabled) {
             allInputs.forEach(el => {
-                // El botón de auth tiene lógica inversa
-                if (el.id === 'auth-btn') {
-                    el.disabled = isEnabled;
-                } else {
-                    el.disabled = !isEnabled;
-                }
+                if (el.id === 'auth-btn') el.disabled = isEnabled;
+                else el.disabled = !isEnabled;
             });
         }
-        
         function updateAllUI() {
             if (!currentUser) return;
             updateDisplay(); 
@@ -495,14 +545,12 @@
             renderDescriptionPage(); 
             renderDashboardCharts();
         }
-
         function resetLocalData() {
             skills = JSON.parse(JSON.stringify(initialSkillsData));
             if(logList) logList.innerHTML = '';
             addLogEntry('🚀 ¡Bienvenido! Inicia sesión para cargar tu progreso.');
             updateAllUI();
         }
-        
         function addLogEntry(message, type = '') {
             const logEntry = document.createElement('li');
             logEntry.innerHTML = message;
@@ -510,25 +558,17 @@
             logList.prepend(logEntry);
             while (logList.children.length > 50) logList.removeChild(logList.lastChild);
         }
-
         function renderDashboardCharts() {
             const container = document.getElementById('dashboard-charts-container');
-            if (!container || !currentUser) {
-                if(container) container.innerHTML = '<h3>Inicia sesión para ver tus estadísticas.</h3>';
-                return;
-            }
-            
+            if (!container || !currentUser) { if(container) container.innerHTML = '<h3>Inicia sesión para ver tus estadísticas.</h3>'; return; }
             container.innerHTML = '';
             Object.values(chartInstances).forEach(chart => chart.destroy());
             chartInstances = {};
-
             const CATEGORIES = {
                 combate: { name: 'Habilidades de "Combate"', color: '#e84118', bgColor: 'rgba(232, 65, 24, 0.2)' },
                 autocuidado: { name: 'Habilidades de "Autocuidado"', color: '#4cd137', bgColor: 'rgba(76, 209, 55, 0.2)' },
                 artesania: { name: 'Habilidades de "Artesanía"', color: '#9b59b6', bgColor: 'rgba(155, 89, 182, 0.2)' }
             };
-
-            // --- Gráfico Radial ---
             const radarTitle = document.createElement('h3');
             radarTitle.textContent = 'Resumen General de Habilidades';
             const radarChartWrapper = document.createElement('div');
@@ -537,75 +577,42 @@
             radarChartWrapper.appendChild(radarCanvas);
             container.appendChild(radarTitle);
             container.appendChild(radarChartWrapper);
-            
             const allSkillNames = Object.keys(skills);
-            const radarDatasets = Object.entries(CATEGORIES).map(([catId, catData]) => {
-                return {
-                    label: catData.name,
-                    data: allSkillNames.map(name => skills[name].category === catId ? skills[name].level : 0),
-                    fill: true,
-                    backgroundColor: catData.bgColor,
-                    borderColor: catData.color,
-                    pointBackgroundColor: catData.color,
-                    pointBorderColor: '#fff',
-                    pointHoverBackgroundColor: '#fff',
-                    pointHoverBorderColor: catData.color
-                }
-            });
-
+            const radarDatasets = Object.entries(CATEGORIES).map(([catId, catData]) => ({
+                label: catData.name,
+                data: allSkillNames.map(name => skills[name].category === catId ? skills[name].level : 0),
+                fill: true,
+                backgroundColor: catData.bgColor,
+                borderColor: catData.color,
+                pointBackgroundColor: catData.color,
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: catData.color
+            }));
             chartInstances.radar = new Chart(radarCanvas, {
                 type: 'radar',
-                data: {
-                    labels: allSkillNames.map(name => name.split(' ')[0]),
-                    datasets: radarDatasets
-                },
+                data: { labels: allSkillNames.map(name => name.split(' ')[0]), datasets: radarDatasets },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
+                    responsive: true, maintainAspectRatio: false,
                     elements: { line: { tension: 0.1, borderWidth: 2 } },
-                    scales: {
-                        r: {
-                            angleLines: { color: '#4f4f6f' },
-                            grid: { color: '#4f4f6f' },
-                            pointLabels: { font: { size: 9 }, color: '#dcdcdc' },
-                            ticks: { color: '#1e1e2f', backdropColor: '#a0a0c0', stepSize: 1 }
-                        }
-                    },
-                    plugins: {
-                        legend: { position: 'top', labels: { font: { size: 10, family: "'Press Start 2P', cursive" }, color: '#dcdcdc' } }
-                    }
+                    scales: { r: { angleLines: { color: '#4f4f6f' }, grid: { color: '#4f4f6f' }, pointLabels: { font: { size: 9 }, color: '#dcdcdc' }, ticks: { color: '#1e1e2f', backdropColor: '#a0a0c0', stepSize: 1 } } },
+                    plugins: { legend: { position: 'top', labels: { font: { size: 10, family: "'Press Start 2P', cursive" }, color: '#dcdcdc' } } }
                 }
             });
-
-            // --- Gráficos de Barras (Top 15 por categoría) ---
-            const allSubSkillsData = Object.entries(skills)
-                .flatMap(([skillName, skill]) => 
-                    Object.entries(skill.subSkills)
-                        .filter(([, subSkill]) => subSkill.xp > 0)
-                        .map(([subSkillName, subSkill]) => ({ name: subSkillName, xp: subSkill.xp, parent: skillName, category: skill.category }))
-                );
-
+            const allSubSkillsData = Object.entries(skills).flatMap(([skillName, skill]) => Object.entries(skill.subSkills).filter(([, subSkill]) => subSkill.xp > 0).map(([subSkillName, subSkill]) => ({ name: subSkillName, xp: subSkill.xp, parent: skillName, category: skill.category })));
             for (const [categoryId, category] of Object.entries(CATEGORIES)) {
-                const subSkillsData = allSubSkillsData
-                    .filter(item => item.category === categoryId)
-                    .sort((a, b) => b.xp - a.xp)
-                    .slice(0, 15);
-                
+                const subSkillsData = allSubSkillsData.filter(item => item.category === categoryId).sort((a, b) => b.xp - a.xp).slice(0, 15);
                 if (subSkillsData.length === 0) continue;
-
                 const categoryTitle = document.createElement('h3');
                 categoryTitle.textContent = `Detalle: ${category.name}`;
                 container.appendChild(categoryTitle);
-
                 const chartWrapper = document.createElement('div');
                 chartWrapper.className = 'chart-container';
                 const canvas = document.createElement('canvas');
                 chartWrapper.appendChild(canvas);
                 container.appendChild(chartWrapper);
-
                 const labels = subSkillsData.map(s => `${s.name} (${s.parent.split(' ')[0]})`);
                 const data = subSkillsData.map(s => s.xp);
-
                 chartInstances[`bar_${categoryId}`] = new Chart(canvas, {
                     type: 'bar',
                     data: { labels, datasets: [{ label: 'XP Acumulada', data, backgroundColor: category.color }] },
@@ -620,7 +627,6 @@
                 });
             }
         }
-
         function updateDisplay() {
             const skillsList = document.getElementById('skills-list');
             if(!skillsList) return;
@@ -629,19 +635,10 @@
             Object.entries(skills).sort(([, a], [, b]) => (b.xp || 0) - (a.xp || 0)).forEach(([skillName, skill]) => {
                 const li = document.createElement('li');
                 const progress = calculateSkillProgress(skill);
-                li.innerHTML = `
-                    <div class="skill-info-container">
-                        <span class="skill-name"><span class="skill-icon">${skill.icon}</span>${skillName}</span>
-                        <div class="skill-meta">Lvl: ${skill.level}<br>${(skill.xp || 0).toLocaleString()} XP</div>
-                    </div>
-                    <div class="progress-bar-bg">
-                        <div class="progress-bar-fg" style="width: ${progress.progressPercentage}%;"></div>
-                        <div class="progress-text">${Math.round(progress.progressPercentage)}%</div>
-                    </div>`;
+                li.innerHTML = `<div class="skill-info-container"><span class="skill-name"><span class="skill-icon">${skill.icon}</span>${skillName}</span><div class="skill-meta">Lvl: ${skill.level}<br>${(skill.xp || 0).toLocaleString()} XP</div></div><div class="progress-bar-bg"><div class="progress-bar-fg" style="width: ${progress.progressPercentage}%;"></div><div class="progress-text">${Math.round(progress.progressPercentage)}%</div></div>`;
                 skillsList.appendChild(li);
             });
         }
-        
         function populateSkillSelect() {
             const selectedValue = skillSelect.value;
             skillSelect.innerHTML = '';
@@ -650,7 +647,6 @@
             if (selectedValue) skillSelect.value = selectedValue;
             populateSubSkillSelect(skillSelect.value);
         }
-
         function populateSubSkillSelect(skillName) {
             const selectedValue = subSkillSelect.value;
             subSkillSelect.innerHTML = '';
@@ -665,7 +661,6 @@
                 if(selectedValue) subSkillSelect.value = selectedValue;
             }
         }
-        
         function renderDescriptionPage() {
             if (!descriptionContainer) return;
             descriptionContainer.innerHTML = '<h1>Descripción de Habilidades</h1>';
@@ -681,19 +676,7 @@
                         const item = document.createElement('li');
                         item.className = 'description-item';
                         item.setAttribute('data-skill', skillName);
-                        item.innerHTML = `
-                            <div class="description-header">
-                                <img src="${skill.img}" alt="Icono" class="description-img">
-                                <div><strong>${skillName}:</strong> ${skill.description}</div>
-                            </div>
-                            <div class="subskill-container">
-                                <h4>Habilidades Concretas:</h4>
-                                <ul class="subskill-list"></ul>
-                                <div class="subskill-input-group">
-                                    <input type="text" placeholder="Añadir habilidad..." maxlength="50" ${!currentUser ? 'disabled' : ''}>
-                                    <button class="add-subskill-btn" ${!currentUser ? 'disabled' : ''}>+</button>
-                                </div>
-                            </div>`;
+                        item.innerHTML = `<div class="description-header"><img src="${skill.img}" alt="Icono" class="description-img"><div><strong>${skillName}:</strong> ${skill.description}</div></div><div class="subskill-container"><h4>Habilidades Concretas:</h4><ul class="subskill-list"></ul><div class="subskill-input-group"><input type="text" placeholder="Añadir habilidad..." maxlength="50" ${!currentUser ? 'disabled' : ''}><button class="add-subskill-btn" ${!currentUser ? 'disabled' : ''}>+</button></div></div>`;
                         categoryList.appendChild(item);
                     }
                 }
@@ -701,9 +684,7 @@
             }
             renderAllSubSkillLists();
         }
-
         function renderAllSubSkillLists() { for (const skillName in skills) { if (skills.hasOwnProperty(skillName)) renderSubSkillList(skillName); } }
-
         function renderSubSkillList(skillName) {
             const listElement = document.querySelector(`.description-item[data-skill="${skillName}"] .subskill-list`);
             if (!listElement) return;
@@ -722,40 +703,29 @@
                         });
                     } else { sessionsHTML += '<span>No hay sesiones registradas.</span>'; }
                     sessionsHTML += '</div>';
-                    li.innerHTML = `
-                        <div class="subskill-header">
-                            <span>${subSkillName}</span> 
-                            <div class="subskill-actions">
-                                <button class="edit-subskill-btn" data-name="${subSkillName}" title="Editar nombre">✏️</button>
-                                <button class="delete-subskill-btn" data-name="${subSkillName}" title="Eliminar">🗑️</button>
-                            </div>
-                        </div>
-                        ${sessionsHTML}`;
+                    li.innerHTML = `<div class="subskill-header"><span>${subSkillName}</span><div class="subskill-actions"><button class="edit-subskill-btn" data-name="${subSkillName}" title="Editar nombre">✏️</button><button class="delete-subskill-btn" data-name="${subSkillName}" title="Eliminar">🗑️</button></div></div>${sessionsHTML}`;
                     listElement.appendChild(li);
                 });
             }
         }
 
         // ==========================================================================
-        //  8. EVENT LISTENERS
+        //  7. EVENT LISTENERS
         // ==========================================================================
-        
         function setupEventListeners() {
-            // Navegación principal
             navButtons.forEach(button => {
                 button.addEventListener('click', () => {
                     const targetPage = button.getAttribute('data-page');
                     navButtons.forEach(btn => btn.classList.remove('active'));
                     button.classList.add('active');
                     pages.forEach(page => page.classList.toggle('active', page.id === 'page-' + targetPage));
+                    if (targetPage === 'ranking') renderRanking();
                     if (targetPage === 'dashboard') renderDashboardCharts();
                     if (window.matchMedia('(max-width: 800px)').matches) {
                         document.getElementById('page-' + targetPage)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
                 });
             });
-
-            // Selector de tipo de actividad
             temporalBtn.addEventListener('click', () => {
                 temporalBtn.classList.add('active');
                 discreteBtn.classList.remove('active');
@@ -768,80 +738,51 @@
                 timeInputContainer.style.display = 'none';
                 unitInputContainer.style.display = 'block';
             });
-
-            // Selectores de habilidad
             skillSelect.addEventListener('change', (e) => populateSubSkillSelect(e.target.value));
-
-            // Registro de XP
             registerBtn.addEventListener('click', async () => {
                 if(!currentUser) return;
                 try {
                     const selectedSkill = skillSelect.value;
                     const selectedSubSkill = subSkillSelect.value;
                     const activityType = temporalBtn.classList.contains('active') ? 'temporal' : 'discrete';
-                    
-                    if (!selectedSkill || subSkillSelect.disabled || !selectedSubSkill) {
-                        throw new Error('Selecciona una habilidad válida.');
-                    }
-                    
+                    if (!selectedSkill || subSkillSelect.disabled || !selectedSubSkill) throw new Error('Selecciona una habilidad válida.');
                     const skillData = skills[selectedSkill];
                     const subSkillData = skillData.subSkills[selectedSubSkill];
                     const oldLevel = skillData.level;
                     let timeSpent;
-
                     if (activityType === 'temporal') {
                         timeSpent = parseInt(document.getElementById('time-input').value, 10);
                         if (isNaN(timeSpent) || timeSpent <= 0) throw new Error('Ingresa un tiempo válido (mínimo 1 minuto).');
                     } else {
                         if (!document.getElementById('unit-check').checked) throw new Error('Marca la actividad como completada.');
                     }
-                    
-                    const xpGained = calculateXpGained(activityType, timeSpent);
-                    
+                    const xpGained = Math.floor((activityType === 'temporal' ? (timeSpent / 15) * XP_PER_15_MINS : XP_PER_UNIT) * INTENSITY_MULTIPLIERS[document.getElementById('intensity-select').value] * PERFORMANCE_MULTIPLIERS[document.getElementById('performance-select').value]);
                     if (!subSkillData.sessions) subSkillData.sessions = [];
                     subSkillData.xp = (subSkillData.xp || 0) + xpGained;
                     skillData.xp = (skillData.xp || 0) + xpGained;
-                    
                     subSkillData.sessions.push({ date: new Date().toISOString(), type: activityType, time: activityType === 'temporal' ? timeSpent : null, intensity: document.getElementById('intensity-select').value, performance: document.getElementById('performance-select').value, xpEarned: xpGained });
-                    
                     skillData.level = getLevelFromXp(skillData.xp);
                     const leveledUp = skillData.level > oldLevel;
-
                     const activityIcon = activityType === 'temporal' ? '⏱️' : '✅';
                     const activityDetail = activityType === 'temporal' ? `${timeSpent} min` : 'Unidad completada';
-                    
-                    addLogEntry(`
-                        <div class="log-entry">
-                            <span class="xp-gain">+${xpGained.toLocaleString()}</span>
-                            <span class="skill-info">${skillData.icon} ${selectedSkill} (${selectedSubSkill})</span>
-                            <span class="activity-details">${activityIcon} ${activityDetail}</span>
-                        </div>`, leveledUp ? 'level-up' : '');
-                    
-                    if (leveledUp) {
-                        addLogEntry(`<div class="level-up"><span class="level-up-msg">🎉 ¡Nivel ${skillData.level} en ${selectedSkill}!</span></div>`, 'level-up');
-                    }
-                    
+                    addLogEntry(`<div class="log-entry"><span class="xp-gain">+${xpGained.toLocaleString()}</span><span class="skill-info">${skillData.icon} ${selectedSkill} (${selectedSubSkill})</span><span class="activity-details">${activityIcon} ${activityDetail}</span></div>`, leveledUp ? 'level-up' : '');
+                    if (leveledUp) addLogEntry(`<div class="level-up"><span class="level-up-msg">🎉 ¡Nivel ${skillData.level} en ${selectedSkill}!</span></div>`, 'level-up');
                     document.getElementById('time-input').value = '';
                     document.getElementById('unit-check').checked = false;
-                    
                     await saveUserData(currentUser);
                     updateAllUI();
-                    renderSubSkillList(selectedSkill); // Actualizar historial de sesiones
-                    
+                    renderSubSkillList(selectedSkill);
                 } catch (error) {
                     addLogEntry(`<span class="error">✗ ${error.message}</span>`);
                     console.error('Error en registro:', error);
                 }
             });
-
-            // Listeners de la página de Descripción (añadir/editar/borrar sub-habilidades)
             descriptionContainer.addEventListener('click', async (e) => {
                 if (!currentUser) return;
                 const target = e.target.closest('button'); if (!target) return;
                 const parentItem = target.closest('.description-item'); if (!parentItem) return;
                 const skillName = parentItem.getAttribute('data-skill'); const skillData = skills[skillName];
                 if (!skillData.subSkills) skillData.subSkills = {};
-
                 if (target.classList.contains('add-subskill-btn')) { 
                     const input = parentItem.querySelector('input[type="text"]'); 
                     const value = input.value.trim(); 
@@ -872,48 +813,36 @@
                     addLogEntry(`🗑️ Habilidad "${subSkillNameToDelete}" eliminada.`);
                 }
             });
-            
-            // Listeners del modal de confirmación
             resetProgressBtn.addEventListener('click', () => { confirmModal.style.display = 'flex'; });
             cancelDeleteBtn.addEventListener('click', () => { confirmModal.style.display = 'none'; });
             confirmDeleteBtn.addEventListener('click', async () => {
                 confirmModal.style.display = 'none';
                 await deleteUserData();
             });
-
-            // Listener de Misiones
             createMissionBtn.addEventListener('click', () => {
                 const title = missionTitleInput.value;
                 const date = missionDateInput.value;
                 const time = missionTimeInput.value;
                 const description = missionDescriptionInput.value;
-
-                if(!title || !date || !time) {
-                    addLogEntry('<span class="error">✗ Por favor, completa título, fecha y hora de la misión.</span>');
-                    return;
-                }
-
+                if(!title || !date || !time) { addLogEntry('<span class="error">✗ Por favor, completa título, fecha y hora de la misión.</span>'); return; }
                 const startDateTime = new Date(`${date}T${time}`);
                 const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000); 
-
                 const toGoogleFormat = (date) => date.toISOString().replace(/[-:.]/g, '').slice(0, 15);
-
                 const googleCalendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${toGoogleFormat(startDateTime)}/${toGoogleFormat(endDateTime)}&details=${encodeURIComponent(description)}&sf=true&output=xml`;
-
                 window.open(googleCalendarUrl, '_blank');
                 addLogEntry(`🗓️ Recordatorio para "${title}" enviado a Google Calendar.`);
             });
         }
 
         // ==========================================================================
-        //  9. INICIALIZACIÓN
+        //  8. INICIALIZACIÓN
         // ==========================================================================
         window.addEventListener('DOMContentLoaded', () => {
              resetLocalData();
              setupEventListeners();
-             enableAllInputs(false); // Deshabilitar todo al inicio
+             enableAllInputs(false);
         });
-
     </script>
 </body>
 </html>
+�
