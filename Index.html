@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Aventurero v13 (CSP Corregido v2)</title>
-    <!-- Importación de la librería Chart.js para los gráficos -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Panel de Aventurero v14 (Sin Chart.js)</title>
+    <!-- Se eliminó la importación de Chart.js -->
     <style>
         /* ==========================================================================
            ESTILOS GENERALES
@@ -36,7 +35,6 @@
         .type-btn.active { background-color: #4a90e2; border-bottom-color: #2a5a9a; transform: translateY(2px); border-bottom-width: 2px; }
         #unit-input-container { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
         #unit-check { width: auto; height: 20px; }
-        .chart-container { position: relative; min-height: 300px; padding: 15px; background: #1e1e2f; border-radius: 5px; margin-top: 10px; margin-bottom: 20px; }
         .skills-panel ul, .log-panel ul, .mission-list ul { list-style: none; padding: 0; max-height: 450px; overflow-y: auto; }
         .skills-panel li { background-color: #33334f; padding: 10px 15px; margin-bottom: 8px; border-left: 5px solid #ffdd57; display: block; border-radius: 4px; }
         .skill-info-container { display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; margin-bottom: 10px; }
@@ -68,12 +66,7 @@
         .xp-gain { grid-column: 1 / 2; grid-row: 1 / 3; font-weight: bold; color: #32ff7e; font-size: 1rem; }
         .skill-info { grid-column: 2 / 3; font-weight: bold; }
         .activity-details { grid-column: 2/3; font-size: 0.8rem; color: #a0a0c0; }
-        .evaluation { grid-column: 1 / 3; display: flex; gap: 15px; margin-top: 5px; font-size: 0.65rem; }
-        .intensity.bajo { color: #1e90ff; } .intensity.medio { color: #dcdcdc; } .intensity.alto { color: #ffdd57; }
-        .performance.malo { color: #ff4757; } .performance.normal { color: #dcdcdc; } .performance.bueno { color: #32ff7e; }
         .level-up .level-up-msg { text-align: center; font-size: 0.8rem; color: #ffdd57; }
-        .level-progress { font-size: 0.7rem; color: #a0a0c0; margin-top: 5px; }
-        #gdrive-status { text-align: center; font-size: 0.7rem; padding: 10px; color: #a0a0c0; min-height: 20px; }
         .progress-bar-bg { position: relative; background-color: #1e1e2f; border-radius: 5px; height: 18px; width: 100%; border: 1px solid #4f4f6f; overflow: hidden; }
         .progress-bar-fg { background-color: #32ff7e; height: 100%; border-radius: 5px; }
         .progress-text { position: absolute; width: 100%; text-align: center; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.65rem; color: #1e1e2f; font-weight: bold; text-shadow: 0 0 2px #dcdcdc; }
@@ -87,6 +80,13 @@
         #ranking-table .rank-name { display: flex; align-items: center; gap: 10px; }
         #ranking-table .rank-avatar { width: 30px; height: 30px; border-radius: 50%; }
         .current-user-rank { background-color: rgba(74, 144, 226, 0.2); }
+        /* Nuevos estilos para la visualización de datos del dashboard */
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
+        .dashboard-category { border: 2px solid; border-radius: 8px; padding: 15px; }
+        .dashboard-category h4 { margin-top: 0; padding-bottom: 10px; border-bottom: 1px solid; font-size: 1rem; }
+        .dashboard-skill { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; padding: 5px 0; }
+        .dashboard-skill-name { display: flex; align-items: center; gap: 8px; }
+        .dashboard-skill-level { font-size: 1rem; font-weight: bold; }
         @media (max-width: 800px) { .main-container { flex-direction: column; } .sidebar { width: 100%; position: static; } .description-header { flex-direction: column; text-align: center; } html { font-size: 100%; } }
     </style>
 </head>
@@ -111,7 +111,7 @@
              <div class="container log-panel">
                 <h2>Registro</h2>
                 <ul id="log-list"></ul>
-                <div id="version-info">v13 (CSP Corregido v2)</div>
+                <div id="version-info">v14 (Sin Chart.js)</div>
             </div>
         </div>
 
@@ -120,7 +120,9 @@
             <div id="page-dashboard" class="page-content active">
                 <div class="container">
                     <h1>Panel de Control</h1>
-                    <div id="dashboard-charts-container"></div>
+                    <div id="dashboard-container">
+                        <!-- El resumen del dashboard se generará aquí -->
+                    </div>
                 </div>
             </div>
 
@@ -182,18 +184,14 @@
                                     <th>XP Total</th>
                                 </tr>
                             </thead>
-                            <tbody id="ranking-body">
-                                <!-- El ranking se llenará aquí -->
-                            </tbody>
+                            <tbody id="ranking-body"></tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
             <div id="page-descripcion" class="page-content">
-                <div class="container description-content">
-                    <!-- Las descripciones de habilidades se generarán aquí -->
-                </div>
+                <div class="container description-content"></div>
             </div>
 
         </div>
@@ -223,17 +221,11 @@
             getDocs 
         } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
-        // *** NUEVA CORRECCIÓN CSP ***
-        // Deshabilitar animaciones que pueden usar 'eval' bajo el capó en algunos entornos.
-        Chart.defaults.animation = false;
-
-
         // ==========================================================================
         //  2. CONFIGURACIÓN DE FIREBASE
         // ==========================================================================
-        // Tu configuración personal de Firebase.
         const firebaseConfig = {
-            apiKey: "AIzaSyAntlbZJfFyQ7NxyY5l5dXcGo4sv4Nj310", // ¡Este valor es público y está bien que esté aquí!
+            apiKey: "AIzaSyAntlbZJfFyQ7NxyY5l5dXcGo4sv4Nj310",
             authDomain: "aventurero-ba1da.firebaseapp.com",
             projectId: "aventurero-ba1da",
             storageBucket: "aventurero-ba1da.appspot.com",
@@ -256,7 +248,6 @@
         const authBtn = document.getElementById('auth-btn');
         const logoutBtn = document.getElementById('logout-btn');
         const authStatus = document.getElementById('auth-status');
-        const allInputs = document.querySelectorAll('.input-section select, .input-section input, .input-section button, .description-item button, .description-item input');
         const navRankingBtn = document.querySelector('.nav-btn[data-page="ranking"]');
         const rankingBody = document.getElementById('ranking-body');
         const registerBtn = document.getElementById('register-btn');
@@ -271,7 +262,6 @@
         //  5. ESTADO Y CONSTANTES DE LA APP
         // ==========================================================================
         let skills = {};
-        let chartInstances = {};
         let currentUser = null;
         
         const initialSkillsData = {
@@ -299,7 +289,6 @@
         //  6. LÓGICA PRINCIPAL DE LA APP
         // ==========================================================================
 
-        // --- LÓGICA DE AUTENTICACIÓN ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
@@ -308,8 +297,7 @@
                 logoutBtn.style.display = 'block';
                 if (navRankingBtn) navRankingBtn.style.display = 'block';
                 await loadUserData(user);
-                // Habilitar controles después de cargar datos
-                document.querySelectorAll('.input-section select, .input-section input, .input-section button, .description-item button, .description-item input').forEach(el => el.disabled = false);
+                document.querySelectorAll('button, select, input').forEach(el => el.disabled = false);
             } else {
                 currentUser = null;
                 authStatus.textContent = 'Inicia sesión para comenzar.';
@@ -317,8 +305,7 @@
                 logoutBtn.style.display = 'none';
                 if (navRankingBtn) navRankingBtn.style.display = 'none';
                 resetLocalData();
-                // Deshabilitar controles si no hay sesión
-                 document.querySelectorAll('.input-section select, .input-section input, .input-section button, .description-item button, .description-item input').forEach(el => el.disabled = true);
+                document.querySelectorAll('button, select, input').forEach(el => { if(el.id !== 'auth-btn') el.disabled = true; });
             }
         });
 
@@ -331,7 +318,6 @@
 
         logoutBtn.addEventListener('click', () => signOut(auth));
 
-        // --- LÓGICA DE DATOS (LECTURA/ESCRITURA EN FIRESTORE) ---
         async function loadUserData(user) {
             addLogEntry('Cargando progreso desde la nube...');
             const userDocRef = doc(db, 'users', user.uid);
@@ -339,7 +325,6 @@
                 const docSnap = await getDoc(userDocRef);
                 if (docSnap.exists() && docSnap.data().skills) {
                     skills = docSnap.data().skills;
-                    // Sincroniza habilidades: si se añade una nueva habilidad en el código, se le añade al usuario.
                     for (const skillName in initialSkillsData) {
                         if (!skills[skillName]) {
                             skills[skillName] = JSON.parse(JSON.stringify(initialSkillsData[skillName]));
@@ -353,8 +338,8 @@
                 }
             } catch (error) {
                 console.error("Error al cargar datos:", error);
-                addLogEntry(`<span class="error">Error al cargar datos. Reintentando...</span>`);
-                skills = JSON.parse(JSON.stringify(initialSkillsData)); // Fallback
+                addLogEntry(`<span class="error">Error al cargar datos.</span>`);
+                skills = JSON.parse(JSON.stringify(initialSkillsData));
             }
             updateAllUI();
         }
@@ -380,7 +365,6 @@
             }
         }
         
-        // --- FUNCIONES DE RENDERIZADO Y UI ---
         async function renderRanking() {
             if (!rankingBody) return;
             rankingBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Cargando ranking...</td></tr>';
@@ -407,7 +391,7 @@
                     rank++;
                 });
                 if (querySnapshot.empty) {
-                    rankingBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Aún no hay aventureros en el ranking. ¡Sé el primero!</td></tr>';
+                    rankingBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Aún no hay aventureros.</td></tr>';
                 }
             } catch (error) {
                 console.error("Error al renderizar el ranking:", error);
@@ -425,75 +409,53 @@
             return { progressPercentage: xpNeededForLevel > 0 ? (xpInCurrentLevel / xpNeededForLevel) * 100 : 0 };
         }
 
-        function renderDashboardCharts() {
-            const container = document.getElementById('dashboard-charts-container');
+        // *** FUNCIÓN DE RENDERIZADO DEL DASHBOARD MODIFICADA ***
+        function renderDashboard() {
+            const container = document.getElementById('dashboard-container');
             if (!container || !skills || Object.keys(skills).length === 0) return;
-            container.innerHTML = '';
-            Object.values(chartInstances).forEach(chart => chart.destroy());
-            chartInstances = {};
+            
+            container.innerHTML = '<h3>Resumen de Niveles</h3>';
+            
+            const dashboardGrid = document.createElement('div');
+            dashboardGrid.className = 'dashboard-grid';
+
             const CATEGORIES = {
-                combate: { name: 'Habilidades de "Combate"', color: '#e84118', bgColor: 'rgba(232, 65, 24, 0.2)' },
-                autocuidado: { name: 'Habilidades de "Autocuidado"', color: '#4cd137', bgColor: 'rgba(76, 209, 55, 0.2)' },
-                artesania: { name: 'Habilidades de "Artesanía"', color: '#9b59b6', bgColor: 'rgba(155, 89, 182, 0.2)' }
+                combate: { name: 'Habilidades de "Combate"', color: '#e84118', skills: [] },
+                autocuidado: { name: 'Habilidades de "Autocuidado"', color: '#4cd137', skills: [] },
+                artesania: { name: 'Habilidades de "Artesanía"', color: '#9b59b6', skills: [] }
             };
-            const allSkillNames = Object.keys(skills);
-            const radarDatasets = Object.entries(CATEGORIES).map(([catId, catData]) => ({ 
-                label: catData.name, 
-                data: allSkillNames.map(name => skills[name].category === catId ? skills[name].level : 0), 
-                fill: true, 
-                backgroundColor: catData.bgColor, 
-                borderColor: catData.color, 
-                pointBackgroundColor: catData.color 
-            }));
-            const radarCanvas = document.createElement('canvas');
-            container.insertAdjacentHTML('beforeend', '<h3>Resumen General de Niveles</h3><div class="chart-container"></div>');
-            container.lastElementChild.appendChild(radarCanvas);
-            chartInstances.radar = new Chart(radarCanvas, { 
-                type: 'radar', 
-                data: { 
-                    labels: allSkillNames.map(name => name.split(' ')[0]), 
-                    datasets: radarDatasets 
-                }, 
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { 
-                            labels: { color: '#dcdcdc' } 
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.parsed.r !== null) {
-                                        label += `Nivel ${context.parsed.r}`;
-                                    }
-                                    return label;
-                                }
-                            }
-                        }
-                    },
-                    scales: { 
-                        r: { 
-                            angleLines: { color: '#4f4f6f' }, 
-                            grid: { color: '#4f4f6f' }, 
-                            pointLabels: { 
-                                font: { size: 9 }, 
-                                color: '#dcdcdc'
-                            }, 
-                            ticks: { 
-                                color: '#1e1e2f', 
-                                backdropColor: '#a0a0c0', 
-                                stepSize: 1, 
-                                font: { family: "'Press Start 2P', cursive" } 
-                            } 
-                        } 
-                    } 
-                } 
-            });
+
+            // Agrupar habilidades por categoría
+            for(const skillName in skills) {
+                const skill = skills[skillName];
+                if (CATEGORIES[skill.category]) {
+                    CATEGORIES[skill.category].skills.push({ name: skillName, ...skill });
+                }
+            }
+            
+            // Renderizar cada categoría
+            for (const catId in CATEGORIES) {
+                const category = CATEGORIES[catId];
+                const categoryContainer = document.createElement('div');
+                categoryContainer.className = 'dashboard-category';
+                categoryContainer.style.borderColor = category.color;
+
+                let skillsHTML = `<h4 style="color: ${category.color}; border-color: ${category.color};">${category.name}</h4>`;
+                
+                category.skills.sort((a,b) => b.xp - a.xp).forEach(skill => {
+                    skillsHTML += `
+                        <div class="dashboard-skill">
+                            <span class="dashboard-skill-name">${skill.icon} ${skill.name.split('(')[0].trim()}</span>
+                            <span class="dashboard-skill-level">Lvl ${skill.level}</span>
+                        </div>
+                    `;
+                });
+
+                categoryContainer.innerHTML = skillsHTML;
+                dashboardGrid.appendChild(categoryContainer);
+            }
+
+            container.appendChild(dashboardGrid);
         }
 
         function updateDisplay() {
@@ -526,6 +488,7 @@
             if (selectedValue) skillSelect.value = selectedValue;
             populateSubSkillSelect(skillSelect.value);
         }
+
         function populateSubSkillSelect(skillName) {
             const subSkillSelect = document.getElementById('subskill-select');
             const selectedValue = subSkillSelect.value;
@@ -562,7 +525,7 @@
             updateDisplay();
             populateSkillSelect();
             renderDescriptionPage();
-            renderDashboardCharts();
+            renderDashboard(); // Llamar a la nueva función
         }
         function renderDescriptionPage() {
             const descriptionContainer = document.querySelector('#page-descripcion .description-content');
@@ -637,7 +600,7 @@
             const descriptionContainer = document.querySelector('#page-descripcion .description-content');
             if (!descriptionContainer) return;
             descriptionContainer.addEventListener('click', async (e) => {
-                if (!currentUser) return; // No hacer nada si no hay sesión
+                if (!currentUser) return;
                 const target = e.target.closest('button'); if (!target) return;
                 const parentItem = target.closest('.description-item'); if (!parentItem) return;
                 const skillName = parentItem.getAttribute('data-skill'); const skillData = skills[skillName];
@@ -668,18 +631,17 @@
                 }
                 else if (target.classList.contains('delete-subskill-btn')) { 
                     const subSkillNameToDelete = target.getAttribute('data-name');
-                    if (window.confirm(`¿Seguro que quieres borrar "${subSkillNameToDelete}"? Esta acción no se puede deshacer.`)) {
+                    if (window.confirm(`¿Seguro que quieres borrar "${subSkillNameToDelete}"?`)) {
                          delete skillData.subSkills[subSkillNameToDelete]; 
                          await saveUserData(currentUser); 
                          renderSubSkillList(skillName); 
                          populateSubSkillSelect(document.getElementById('skill-select').value); 
-                         addLogEntry(`🗑️ Habilidad concreta "${subSkillNameToDelete}" eliminada.`);
+                         addLogEntry(`🗑️ Habilidad "${subSkillNameToDelete}" eliminada.`);
                     }
                 }
             });
         }
         
-        // --- EVENT LISTENERS GENERALES ---
         document.getElementById('skill-select').addEventListener('change', (e) => populateSubSkillSelect(e.target.value));
         temporalBtn.addEventListener('click', () => { temporalBtn.classList.add('active'); discreteBtn.classList.remove('active'); timeInputContainer.style.display = 'block'; unitInputContainer.style.display = 'none'; });
         discreteBtn.addEventListener('click', () => { discreteBtn.classList.add('active'); temporalBtn.classList.remove('active'); timeInputContainer.style.display = 'none'; unitInputContainer.style.display = 'block'; });
@@ -746,7 +708,6 @@
             });
         });
 
-        // --- INICIALIZACIÓN AL CARGAR LA PÁGINA ---
         window.addEventListener('DOMContentLoaded', () => {
              resetLocalData();
         });
