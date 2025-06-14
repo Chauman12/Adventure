@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Aventurero v11 (Firebase Corregido)</title>
+    <title>Panel de Aventurero v12 (CSP Corregido)</title>
     <!-- Importación de la librería Chart.js para los gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -111,7 +111,7 @@
              <div class="container log-panel">
                 <h2>Registro</h2>
                 <ul id="log-list"></ul>
-                <div id="version-info">v11 (Firebase Corregido)</div>
+                <div id="version-info">v12 (CSP Corregido)</div>
             </div>
         </div>
 
@@ -451,14 +451,44 @@
                 }, 
                 options: { 
                     responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins: { legend: { labels: { color: '#dcdcdc' } } },
+                    maintainAspectRatio: false,
+                    // *** INICIO DE LA CORRECCIÓN CSP ***
+                    plugins: { 
+                        legend: { 
+                            labels: { color: '#dcdcdc' } 
+                        },
+                        tooltip: {
+                            // Usar callbacks para generar texto del tooltip evita 'eval'
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.r !== null) {
+                                        label += `Nivel ${context.parsed.r}`;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    // *** FIN DE LA CORRECCIÓN CSP ***
                     scales: { 
                         r: { 
                             angleLines: { color: '#4f4f6f' }, 
                             grid: { color: '#4f4f6f' }, 
-                            pointLabels: { font: { size: 9 }, color: '#dcdcdc' }, 
-                            ticks: { color: '#1e1e2f', backdropColor: '#a0a0c0', stepSize: 1, font: { family: "'Press Start 2P', cursive" } } 
+                            pointLabels: { 
+                                font: { size: 9 }, 
+                                color: '#dcdcdc'
+                                // El callback aquí no es estrictamente necesario si el de tooltip ya funciona, pero es una buena práctica
+                            }, 
+                            ticks: { 
+                                color: '#1e1e2f', 
+                                backdropColor: '#a0a0c0', 
+                                stepSize: 1, 
+                                font: { family: "'Press Start 2P', cursive" } 
+                            } 
                         } 
                     } 
                 } 
@@ -524,7 +554,7 @@
             skills = JSON.parse(JSON.stringify(initialSkillsData));
             const logList = document.getElementById('log-list');
             if (logList) logList.innerHTML = '';
-            addLogEntry('� ¡Bienvenido! Inicia sesión para cargar tu progreso.');
+            addLogEntry('🚀 ¡Bienvenido! Inicia sesión para cargar tu progreso.');
             updateAllUI();
         }
         function updateAllUI() {
@@ -637,8 +667,6 @@
                 }
                 else if (target.classList.contains('delete-subskill-btn')) { 
                     const subSkillNameToDelete = target.getAttribute('data-name');
-                    // Usamos un modal simple o confirm para la verificación. 
-                    // `confirm` puede ser bloqueado, pero para este caso es un ejemplo.
                     if (window.confirm(`¿Seguro que quieres borrar "${subSkillNameToDelete}"? Esta acción no se puede deshacer.`)) {
                          delete skillData.subSkills[subSkillNameToDelete]; 
                          await saveUserData(currentUser); 
@@ -724,4 +752,3 @@
     </script>
 </body>
 </html>
-�
